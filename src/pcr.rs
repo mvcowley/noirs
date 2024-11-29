@@ -16,7 +16,7 @@ impl SparseTree {
             matrix: Array2::<u64>::ones((reads, rounds.len() + 1)),
         }
     }
-    fn update(&mut self, read: u32, path: ndarray::Array1<u64>) {
+    fn update(&mut self, read: u32, path: Array1<u64>) {
         self.matrix.slice(s![read, ...]).assign_to(path);
     }
 }
