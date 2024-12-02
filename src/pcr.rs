@@ -1,6 +1,9 @@
 //! Error profiles for pcr
 
-use ndarray::{array, s, Array1, Array2, ArrayView1, ArrayView2};
+use ndarray::{
+    array, s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Dim, Dimension, RawData,
+    ViewRepr,
+};
 use rand::{thread_rng, Rng};
 
 struct SparseTree {
@@ -23,7 +26,7 @@ impl SparseTree {
 
 // If next round for other reads has the same node id, transcript did not participate in this round
 // of PCR.
-fn skip_round(next_round: ArrayView2<'_,u64>, current_node: &u64) -> bool {
+fn skip_round(next_round: ArrayBase<ViewRepr<&u64>, Dim<[usize; 1]>>, current_node: &u64) -> bool {
     next_round.iter().any(|&x| x == *current_node)
 }
 
