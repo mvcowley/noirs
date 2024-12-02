@@ -1,13 +1,10 @@
 //! Error profiles for pcr
 
-use ndarray::{
-    array, s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Dim, Dimension, RawData,
-    ViewRepr,
-};
+use ndarray::{array, s, Array1, Array2, ArrayBase, Dim, OwnedRepr, ViewRepr};
 use rand::{thread_rng, Rng};
 
 struct SparseTree {
-    matrix: Array2<u64>,
+    matrix: ArrayBase<OwnedRepr<u64>, Dim<[usize; 2]>>,
 }
 
 // SparseTree::matrix is an array of u64 as there can be 2^30 leaf nodes
@@ -16,11 +13,11 @@ impl SparseTree {
     fn new(rounds: &Vec<f32>, reads: &u32) -> Self {
         let axis1 = rounds.len() + 1;
         Self {
-            matrix: Array2::<u64>::ones((reads as int, axis1 as int)),
+            matrix: Array2::<u64>::ones((reads, axis1)),
         }
     }
-    fn update(&mut self, read: u32, path: Array1<u64>) {
-        self.matrix.slice(s![read as int]).assign_to(path);
+    fn update(&mut self, read: u32, path: ArrayBase<OwnedRepr<u64>, Dim<[usize; 1]>>) {
+        self.matrix.slice(s![read, ..]).assign(&path);
     }
 }
 
@@ -42,16 +39,19 @@ fn calc_node(current_node: u64, child: f32) -> u64 {
     }
 }
 
-pub fn trace_path(tree: &SparseTree, rounds: &Vec<f32>) -> Array1<u64> {
+pub fn trace_path(
+    tree: &SparseTree,
+    rounds: &Vec<f32>,
+) -> ArrayBase<OwnedRepr<u64>, Dim<[usize; 1]>> {
     let mut rng = thread_rng();
     let mut path: Array1<u64> = Array1::<u64>::ones(rounds.len());
     for (i, efficiency) in rounds.iter().enumerate() {
         let next_round = tree.matrix.slice(s![.., i + 1]);
         let current_node = path[[i]];
-        let replicate: f32 = rng.gen();
         if in_next_round(next_round, &current_node) {
             path[[i + 1]] = current_node;
         } else {
+            let replicate: f32 = rng.gen();
             if replicate > *efficiency {
                 let child: f32 = rng.gen();
                 let next_node: u64 = calc_node(current_node, child);
