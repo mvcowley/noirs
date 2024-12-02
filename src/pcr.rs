@@ -26,7 +26,10 @@ impl SparseTree {
 
 // If next round for other reads has the same node id, transcript did not participate in this round
 // of PCR.
-fn skip_round(next_round: ArrayBase<ViewRepr<&u64>, Dim<[usize; 1]>>, current_node: &u64) -> bool {
+fn in_next_round(
+    next_round: ArrayBase<ViewRepr<&u64>, Dim<[usize; 1]>>,
+    current_node: &u64,
+) -> bool {
     next_round.iter().any(|&x| x == *current_node)
 }
 
@@ -46,7 +49,7 @@ pub fn trace_path(tree: &SparseTree, rounds: &Vec<f32>) -> Array1<u64> {
         let next_round = tree.matrix.slice(s![.., i + 1]);
         let current_node = path[[i]];
         let replicate: f32 = rng.gen();
-        if skip_round(next_round, &current_node) {
+        if in_next_round(next_round, &current_node) {
             path[[i + 1]] = current_node;
         } else {
             if replicate > *efficiency {
