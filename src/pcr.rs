@@ -1,19 +1,23 @@
 //! Error profiles for pcr
 
-use ndarray::{array, s, Array1, Array2, ArrayBase, Dim, OwnedRepr, ViewRepr};
+// use ndarray::{array, s, Array, Array1, Array2, ArrayBase, Dim, OwnedRepr, ViewRepr};
+use ndarray::prelude::*;
 use rand::{thread_rng, Rng};
 
+/// SparseTree with matrix field that will be populated by node IDs
+/// SparseTree::matrix is an array of u64 as there can be 2^30 leaf nodes
 struct SparseTree {
-    matrix: ArrayBase<OwnedRepr<u64>, Dim<[usize; 2]>>,
+    // matrix: ArrayBase<OwnedRepr<u64>, Dim<[usize; 2]>>,
+    matrix: Array2<u64>,
 }
 
-// SparseTree::matrix is an array of u64 as there can be 2^30 leaf nodes
-// Matrix is ones so that binary tree path calculation is easy e.g. 1*2 = 2
+/// Functions to create and update the SparseTree matrix
 impl SparseTree {
-    fn new(rounds: &Vec<f32>, reads: &u32) -> Self {
+    /// Matrix is ones so that binary tree path calculation is easy e.g. 1*2 = 2
+    fn new(rounds: &Vec<f32>, reads: &u32) -> SparseTree {
         let axis1 = rounds.len() + 1;
-        Self {
-            matrix: Array2::<u64>::ones((reads, axis1)),
+        SparseTree {
+            matrix: Array::<u64, _>::ones((reads, axis1).f()),
         }
     }
     fn update(&mut self, read: u32, path: ArrayBase<OwnedRepr<u64>, Dim<[usize; 1]>>) {
