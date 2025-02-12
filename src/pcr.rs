@@ -16,11 +16,13 @@ impl SparseTree {
     fn new(rounds: &Vec<f32>, reads: &u32) -> SparseTree {
         let axis1 = rounds.len() + 1;
         SparseTree {
-            matrix: Array::<u64, _>::ones((*reads as usize, axis1).f()),
+            matrix: Array2::<u64>::ones((usize::try_from(*reads).unwrap(), axis1).f()),
         }
     }
-    fn update(&mut self, read: u32, path: ArrayBase<OwnedRepr<u64>, Dim<[usize; 1]>>) {
-        self.matrix.slice(s![read, ..]).assign(&path);
+    fn update(&mut self, read: u32, path: Array1<u64>) {
+        self.matrix
+            .slice_mut(s![usize::try_from(read).unwrap(), ..])
+            .assign(&path);
     }
 }
 
