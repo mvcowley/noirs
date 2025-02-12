@@ -7,7 +7,6 @@ use rand::{thread_rng, Rng};
 /// SparseTree with matrix field that will be populated by node IDs
 /// SparseTree::matrix is an array of u64 as there can be 2^30 leaf nodes
 struct SparseTree {
-    // matrix: ArrayBase<OwnedRepr<u64>, Dim<[usize; 2]>>,
     matrix: Array2<u64>,
 }
 
@@ -17,7 +16,7 @@ impl SparseTree {
     fn new(rounds: &Vec<f32>, reads: &u32) -> SparseTree {
         let axis1 = rounds.len() + 1;
         SparseTree {
-            matrix: Array::<u64, _>::ones((reads, axis1).f()),
+            matrix: Array::<u64, _>::ones((*reads as usize, axis1).f()),
         }
     }
     fn update(&mut self, read: u32, path: ArrayBase<OwnedRepr<u64>, Dim<[usize; 1]>>) {
