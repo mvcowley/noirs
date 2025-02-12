@@ -2,7 +2,7 @@
 
 // use ndarray::{array, s, Array, Array1, Array2, ArrayBase, Dim, OwnedRepr, ViewRepr};
 use ndarray::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 
 /// SparseTree with matrix field that will be populated by node IDs
 struct SparseTree {
@@ -42,13 +42,26 @@ fn calc_node(current_node: u64, child: f32) -> u64 {
     }
 }
 
+/// Drop duplicates from node vector
+fn get_uniques(current_nodes: &Vec<u32>) -> Vec<u32> {
+    let mut nodes = current_nodes.clone();
+    nodes.sort();
+    nodes.dedup();
+    nodes
+}
+
+pub fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32, rng: &ThreadRng) {
+    let current_nodes = tree.matrix.index_axis(Axis(0), round as usize).to_vec();
+    let unique_nodes = get_uniques(&current_nodes);
+}
+
 pub fn trace_path(
     tree: &SparseTree,
-    rounds: &Vec<f32>,
+    efficiencies: &Vec<f32>,
 ) -> ArrayBase<OwnedRepr<u64>, Dim<[usize; 1]>> {
     let mut rng = thread_rng();
-    let mut path: Array1<u64> = Array1::<u64>::ones(rounds.len());
-    for (i, efficiency) in rounds.iter().enumerate() {
+    let mut path: Array1<u64> = Array1::<u64>::ones(efficiencies.len());
+    for (i, efficiency) in efficiencies.iter().enumerate() {
         let next_round = tree.matrix.slice(s![.., i + 1]);
         let current_node = path[[i]];
         if in_next_round(next_round, &current_node) {
