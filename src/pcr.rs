@@ -5,21 +5,22 @@ use ndarray::prelude::*;
 use rand::{thread_rng, Rng};
 
 /// SparseTree with matrix field that will be populated by node IDs
-/// SparseTree::matrix is an array of u64 as there can be 2^30 leaf nodes
 struct SparseTree {
-    matrix: Array2<u64>,
+    /// matrix is an array of u32 as there can be (2^31)-1 leaf nodes
+    matrix: Array2<u32>,
 }
 
 /// Functions to create and update the SparseTree matrix
 impl SparseTree {
-    /// Matrix is ones so that binary tree path calculation is easy e.g. 1*2 = 2
+    /// Create a matrix of ones so that binary tree path calculation is easy e.g. 1*2 = 2
     fn new(rounds: &Vec<f32>, reads: &u32) -> SparseTree {
         let axis1 = rounds.len() + 1;
         SparseTree {
-            matrix: Array2::<u64>::ones((usize::try_from(*reads).unwrap(), axis1).f()),
+            matrix: Array2::<u32>::ones((usize::try_from(*reads).unwrap(), axis1).f()),
         }
     }
-    fn update(&mut self, read: u32, path: Array1<u64>) {
+    /// Update a slice of the matrix with the next step of the simulation
+    fn update(&mut self, read: u32, path: Array1<u32>) {
         self.matrix
             .slice_mut(s![usize::try_from(read).unwrap(), ..])
             .assign(&path);
@@ -28,10 +29,7 @@ impl SparseTree {
 
 // If next round for other reads has the same node id, transcript did not participate in this round
 // of PCR.
-fn in_next_round(
-    next_round: ArrayBase<ViewRepr<&u64>, Dim<[usize; 1]>>,
-    current_node: &u64,
-) -> bool {
+fn in_next_round(next_round: ArrayView1<u64>, current_node: &u64) -> bool {
     next_round.iter().any(|&x| x == *current_node)
 }
 
