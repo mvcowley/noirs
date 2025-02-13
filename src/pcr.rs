@@ -37,7 +37,7 @@ fn evolve_nodes<R: Rng + ?Sized>(
 ) -> Array1<u32> {
     let rand_vec: Vec<f32> = (0..unique_nodes.len()).map(|_| rng.random()).collect();
     let rand_arr = Array1::from_vec(rand_vec);
-    let evo_arr = rand_arr.map(|x| ((*x < efficiency) as u32) * 2);
+    let evo_arr = rand_arr.map(|x| ((*x < efficiency) as u32) + 1);
     let new_nodes = Array::from_vec(unique_nodes.to_vec()) * evo_arr;
     new_nodes
 }
@@ -97,9 +97,14 @@ mod tests {
     #[test]
     fn test_evolve_nodes() {
         let unique_nodes: Vec<u32> = vec![1, 2, 3];
-        let efficiency: f32 = 0.95;
-        let mut rng = ChaCha8Rng::seed_from_u64(11);
+        let efficiency: f32 = 0.5;
+        let mut rng = ChaCha8Rng::seed_from_u64(9274); // Draws [0.5790517, 0.3029861, 0.11362618]
         let evolved_nodes = evolve_nodes(&unique_nodes, efficiency, &mut rng);
-        assert_eq!(evolved_nodes, array![[2, 5, 7]])
+        assert_eq!(evolved_nodes, array![1, 4, 6])
+    }
+
+    #[test]
+    fn test_evolve_tree() {
+
     }
 }
