@@ -21,28 +21,7 @@ impl SparseTree {
             matrix: Array2::<u32>::ones((usize::try_from(*reads).unwrap(), axis1).f()),
         }
     }
-    /// Update a slice of the matrix with the next step of the simulation
-    fn update(&mut self, read: u32, path: Array1<u32>) {
-        self.matrix
-            .slice_mut(s![usize::try_from(read).unwrap(), ..])
-            .assign(&path);
-    }
 }
-
-// If next round for other reads has the same node id, transcript did not participate in this round
-// of PCR.
-// fn in_next_round(next_round: ArrayView1<u64>, current_node: &u64) -> bool {
-//     next_round.iter().any(|&x| x == *current_node)
-// }
-//
-// fn calc_node(current_node: u64, child: f32) -> u64 {
-//     let next_node: u64 = current_node * 2;
-//     if child < 0.5 {
-//         next_node
-//     } else {
-//         next_node + 1
-//     }
-// }
 
 /// Drop duplicates from node vector
 fn get_uniques(current_nodes: &Vec<u32>) -> Vec<u32> {
@@ -63,8 +42,8 @@ fn evolve_nodes(unique_nodes: &Vec<u32>, efficiency: f32) -> Array1<u32> {
 }
 
 /// Updates SparseTree object with the results of the next PCR round
-fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32) {
-    let current_nodes = tree.matrix.index_axis(Axis(0), round as usize);
+fn evolve_tree(tree: &mut SparseTree, round: usize, efficiency: f32) {
+    let current_nodes = tree.matrix.index_axis(Axis(0), round);
     let unique_nodes = get_uniques(&current_nodes.to_vec());
     let evolved_nodes = evolve_nodes(&unique_nodes, efficiency);
     let evolve_map: IndexMap<u32, u32> = unique_nodes
@@ -79,11 +58,10 @@ fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32) {
 }
 
 /// Create and evolve a SparseTree with `reads` through `rounds`
-pub fn simulate_tree(rounds: Vec<f32>, reads: u32) -> SparseTree {
-    let mut tree = SparseTree::new(&reads, &rounds);
-    for read in 0..=reads {
-        let path = trace_path(&tree, &rounds);
-        tree.update(read, path);
+pub fn simulate_tree(efficiencies: Vec<f32>, reads: u32) -> SparseTree {
+    let mut tree = SparseTree::new(&reads, &efficiencies);
+    for round in 0..efficiencies.len() {
+        evolve_tree(&mut tree, round, efficiencies[round]);
     }
     tree
 }
@@ -94,8 +72,8 @@ mod tests {
 
     #[test]
     fn initialise_tree() {
-        let rounds = vec![0.95, 0.95];
-        let reads = 2;
+        let rounds: Vec<f32> = vec![0.95, 0.95];
+        let reads: u32 = 2;
         let tree = SparseTree::new(&reads, &rounds);
         assert_eq!(tree.matrix, array![[1, 1], [1, 1]])
     }
