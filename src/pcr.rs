@@ -1,5 +1,7 @@
 //! Error profiles for pcr
 
+use indexmap::IndexMap;
+
 use ndarray::prelude::*;
 use ndarray_rand::{rand_distr, RandomExt};
 
@@ -50,17 +52,22 @@ fn get_uniques(current_nodes: &Vec<u32>) -> Vec<u32> {
 }
 
 /// Evolve unique nodes to next round
-fn evolve_nodes(unique_nodes: Vec<u32>, efficiency: f32) -> Array1<u32> {
+fn evolve_nodes(unique_nodes: &Vec<u32>, efficiency: f32) -> Array1<u32> {
     let rand_arr = Array::random(unique_nodes.len(), rand_distr::Uniform::new(0., 1.));
     let evo_arr = rand_arr.map(|x| ((*x < efficiency) as u32) * 2);
-    let new_nodes = Array::from_vec(unique_nodes) * evo_arr;
+    let new_nodes = Array::from_vec(unique_nodes.to_vec()) * evo_arr;
     new_nodes
 }
 
 pub fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32) {
-    let current_nodes = tree.matrix.index_axis(Axis(0), round as usize).to_vec();
-    let unique_nodes = get_uniques(&current_nodes);
-    let evolved_nodes = evolve_nodes(unique_nodes, efficiency); 
+    let current_nodes = tree.matrix.index_axis(Axis(0), round as usize);
+    let unique_nodes = get_uniques(&current_nodes.to_vec());
+    let evolved_nodes = evolve_nodes(&unique_nodes, efficiency);
+    let evo_map: IndexMap<u32, u32> = unique_nodes
+        .iter()
+        .zip(evolved_nodes.iter())
+        .map(|(&orig, &evolved)| (orig, evolved))
+        .collect();
 }
 
 // pub fn trace_path(
