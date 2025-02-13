@@ -50,13 +50,14 @@ fn get_uniques(current_nodes: &Vec<u32>) -> Vec<u32> {
     nodes
 }
 
-
 /// Evolve unique nodes to next round
-fn evolve_nodes(unique_nodes: Vec<u32>, rng: &ThreadRng) -> Vec<u32> {
-    rng_vec = rng.gen() // Look at how to best generate a random vector
+fn evolve_nodes(unique_nodes: Vec<u32>, rng: &mut ThreadRng) -> Vec<u32> {
+    let mut v = vec![f32::default(); unique_nodes.len()];
+    rng.fill(&mut v[..]);
+    v
 }
 
-pub fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32, rng: &ThreadRng) {
+pub fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32, rng: &mut ThreadRng) {
     let current_nodes = tree.matrix.index_axis(Axis(0), round as usize).to_vec();
     let unique_nodes = get_uniques(&current_nodes);
     let evolved_nodes = evolve_nodes(unique_nodes, rng);
