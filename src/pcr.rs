@@ -1,8 +1,7 @@
 //! Error profiles for pcr
 
-// use ndarray::{array, s, Array, Array1, Array2, ArrayBase, Dim, OwnedRepr, ViewRepr};
 use ndarray::prelude::*;
-use rand::{rngs::ThreadRng, thread_rng, Rng};
+use ndarray_rand::{rand_distr, RandomExt};
 
 /// SparseTree with matrix field that will be populated by node IDs
 struct SparseTree {
@@ -29,18 +28,18 @@ impl SparseTree {
 
 // If next round for other reads has the same node id, transcript did not participate in this round
 // of PCR.
-fn in_next_round(next_round: ArrayView1<u64>, current_node: &u64) -> bool {
-    next_round.iter().any(|&x| x == *current_node)
-}
-
-fn calc_node(current_node: u64, child: f32) -> u64 {
-    let next_node: u64 = current_node * 2;
-    if child < 0.5 {
-        next_node
-    } else {
-        next_node + 1
-    }
-}
+// fn in_next_round(next_round: ArrayView1<u64>, current_node: &u64) -> bool {
+//     next_round.iter().any(|&x| x == *current_node)
+// }
+//
+// fn calc_node(current_node: u64, child: f32) -> u64 {
+//     let next_node: u64 = current_node * 2;
+//     if child < 0.5 {
+//         next_node
+//     } else {
+//         next_node + 1
+//     }
+// }
 
 /// Drop duplicates from node vector
 fn get_uniques(current_nodes: &Vec<u32>) -> Vec<u32> {
@@ -51,44 +50,45 @@ fn get_uniques(current_nodes: &Vec<u32>) -> Vec<u32> {
 }
 
 /// Evolve unique nodes to next round
-fn evolve_nodes(unique_nodes: Vec<u32>, rng: &mut ThreadRng) -> Vec<u32> {
-    let mut v = vec![f32::default(); unique_nodes.len()];
-    rng.fill(&mut v[..]);
-    v
+fn evolve_nodes(unique_nodes: Vec<u32>, efficiency: f32) -> Array<u32> {
+    let rand_arr = Array::random(unique_nodes.len(), rand_distr::Uniform::new(0., 1.));
+    let evo_arr = rand_arr.map(|x| ((*x < efficiency) as u32) * 2);
+    let new_nodes = Array::from_vec(unique_nodes) * evo_arr;
+    new_nodes
 }
 
-pub fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32, rng: &mut ThreadRng) {
+pub fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32) {
     let current_nodes = tree.matrix.index_axis(Axis(0), round as usize).to_vec();
     let unique_nodes = get_uniques(&current_nodes);
-    let evolved_nodes = evolve_nodes(unique_nodes, rng);
+    let evolved_nodes = evolve_nodes(unique_nodes, efficiency);
 }
 
-pub fn trace_path(
-    tree: &SparseTree,
-    efficiencies: &Vec<f32>,
-) -> ArrayBase<OwnedRepr<u64>, Dim<[usize; 1]>> {
-    let mut rng = thread_rng();
-    let mut path: Array1<u64> = Array1::<u64>::ones(efficiencies.len());
-    for (i, efficiency) in efficiencies.iter().enumerate() {
-        let next_round = tree.matrix.slice(s![.., i + 1]);
-        let current_node = path[[i]];
-        if in_next_round(next_round, &current_node) {
-            path[[i + 1]] = current_node;
-        } else {
-            let replicate: f32 = rng.gen();
-            if replicate > *efficiency {
-                let child: f32 = rng.gen();
-                let next_node: u64 = calc_node(current_node, child);
-                path[[i + 1]] = next_node;
-            } else {
-                path[[i + 1]] = current_node;
-            }
-        }
-    }
-    path
-}
-
-pub fn construct_tree(rounds: Vec<f32>, reads: u32) -> SparseTree {
+// pub fn trace_path(
+//     tree: &SparseTree,
+//     efficiencies: &Vec<f32>,
+// ) -> ArrayBase<OwnedRepr<u64>, Dim<[usize; 1]>> {
+//     let mut rng = thread_rng();
+//     let mut path: Array1<u64> = Array1::<u64>::ones(efficiencies.len());
+//     for (i, efficiency) in efficiencies.iter().enumerate() {
+//         let next_round = tree.matrix.slice(s![.., i + 1]);
+//         let current_node = path[[i]];
+//         if in_next_round(next_round, &current_node) {
+//             path[[i + 1]] = current_node;
+//         } else {
+//             let replicate: f32 = rng.gen();
+//             if replicate > *efficiency {
+//                 let child: f32 = rng.gen();
+//                 let next_node: u64 = calc_node(current_node, child);
+//                 path[[i + 1]] = next_node;
+//             } else {
+//                 path[[i + 1]] = current_node;
+//             }
+//         }
+//     }
+//     path
+// }
+//
+pub fn simulate_tree(rounds: Vec<f32>, reads: u32) -> SparseTree {
     let mut tree = SparseTree::new(&rounds, &reads);
     for read in 0..=reads {
         let path = trace_path(&tree, &rounds);
