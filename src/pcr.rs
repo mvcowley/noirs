@@ -15,7 +15,7 @@ struct SparseTree {
 /// Functions to create and update the SparseTree matrix
 impl SparseTree {
     /// Create a matrix of ones so that binary tree path calculation is easy e.g. 1*2 = 2
-    fn new(rounds: &Vec<f32>, reads: &u32) -> SparseTree {
+    fn new(reads: &u32, rounds: &Vec<f32>) -> SparseTree {
         let axis1 = rounds.len() + 1;
         SparseTree {
             matrix: Array2::<u32>::ones((usize::try_from(*reads).unwrap(), axis1).f()),
@@ -62,7 +62,7 @@ fn evolve_nodes(unique_nodes: &Vec<u32>, efficiency: f32) -> Array1<u32> {
     new_nodes
 }
 
-// Updates SparseTree object with the results of the next PCR round
+/// Updates SparseTree object with the results of the next PCR round
 fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32) {
     let current_nodes = tree.matrix.index_axis(Axis(0), round as usize);
     let unique_nodes = get_uniques(&current_nodes.to_vec());
@@ -78,8 +78,9 @@ fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32) {
         .assign(&updated_nodes);
 }
 
+/// Create and evolve a SparseTree with `reads` through `rounds`
 pub fn simulate_tree(rounds: Vec<f32>, reads: u32) -> SparseTree {
-    let mut tree = SparseTree::new(&rounds, &reads);
+    let mut tree = SparseTree::new(&reads, &rounds);
     for read in 0..=reads {
         let path = trace_path(&tree, &rounds);
         tree.update(read, path);
@@ -95,7 +96,7 @@ mod tests {
     fn initialise_tree() {
         let rounds = vec![0.95, 0.95];
         let reads = 2;
-        let tree = SparseTree::new(&rounds, &reads);
+        let tree = SparseTree::new(&reads, &rounds);
         assert_eq!(tree.matrix, array![[1, 1], [1, 1]])
     }
 
