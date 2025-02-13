@@ -50,7 +50,7 @@ fn get_uniques(current_nodes: &Vec<u32>) -> Vec<u32> {
 }
 
 /// Evolve unique nodes to next round
-fn evolve_nodes(unique_nodes: Vec<u32>, efficiency: f32) -> Array<u32> {
+fn evolve_nodes(unique_nodes: Vec<u32>, efficiency: f32) -> Array1<u32> {
     let rand_arr = Array::random(unique_nodes.len(), rand_distr::Uniform::new(0., 1.));
     let evo_arr = rand_arr.map(|x| ((*x < efficiency) as u32) * 2);
     let new_nodes = Array::from_vec(unique_nodes) * evo_arr;
@@ -60,7 +60,7 @@ fn evolve_nodes(unique_nodes: Vec<u32>, efficiency: f32) -> Array<u32> {
 pub fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32) {
     let current_nodes = tree.matrix.index_axis(Axis(0), round as usize).to_vec();
     let unique_nodes = get_uniques(&current_nodes);
-    let evolved_nodes = evolve_nodes(unique_nodes, efficiency);
+    let evolved_nodes = evolve_nodes(unique_nodes, efficiency); 
 }
 
 // pub fn trace_path(
