@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+indexmap = "2.7.1"
 ndarray = "0.16.1"
 ndarray-rand = "0.15.0"
 rand = "0.8.5"
