@@ -7,7 +7,7 @@ use ndarray_rand::{rand_distr, RandomExt};
 use rand::Rng;
 
 /// SparseTree with matrix field that will be populated by node IDs
-struct SparseTree {
+pub struct SparseTree {
     /// matrix is an array of u32 as there can be (2^31)-1 leaf nodes
     matrix: Array2<u32>,
 }
@@ -72,18 +72,9 @@ mod tests {
 
     #[test]
     fn initialise_tree() {
-        let rounds: Vec<f32> = vec![0.95, 0.95];
         let reads: u32 = 2;
-        let tree = SparseTree::new(&reads, &rounds);
-        assert_eq!(tree.matrix, array![[1, 1], [1, 1]])
+        let efficiencies: Vec<f32> = vec![0.95, 0.95];
+        let tree = SparseTree::new(&reads, &efficiencies);
+        assert_eq!(tree.matrix, array![[1, 1, 1], [1, 1, 1]])
     }
-
-    // #[test]
-    // fn create_tree() {
-    //     let rounds = vec![0.95, 0.95, 0.95];
-    //     let reads = 5;
-    //     let tree = construct_tree(rounds, reads);
-    // }
-    //
-    //
 }
