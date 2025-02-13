@@ -63,11 +63,13 @@ pub fn evolve_tree(tree: &mut SparseTree, round: u8, efficiency: f32) {
     let current_nodes = tree.matrix.index_axis(Axis(0), round as usize);
     let unique_nodes = get_uniques(&current_nodes.to_vec());
     let evolved_nodes = evolve_nodes(&unique_nodes, efficiency);
-    let evo_map: IndexMap<u32, u32> = unique_nodes
+    let evolve_map: IndexMap<u32, u32> = unique_nodes
         .iter()
         .zip(evolved_nodes.iter())
         .map(|(&orig, &evolved)| (orig, evolved))
         .collect();
+    let updated_nodes = current_nodes.mapv(|node| *evolve_map.get(&node).unwrap());
+    tree.matrix.slice_mut(s![round as usize, ..]).assign(&updated_nodes);
 }
 
 // pub fn trace_path(
