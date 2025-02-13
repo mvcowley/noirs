@@ -71,10 +71,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn initialise_tree() {
+    fn test_new_tree() {
         let reads: u32 = 2;
         let efficiencies: Vec<f32> = vec![0.95, 0.95];
         let tree = SparseTree::new(&reads, &efficiencies);
         assert_eq!(tree.matrix, array![[1, 1, 1], [1, 1, 1]])
+    }
+
+    #[test]
+    fn test_get_uniques() {
+        let nodes: Vec<u32> = vec![3, 2, 2, 1];
+        let unique_nodes = get_uniques(&nodes);
+        assert_eq!(unique_nodes, vec![1, 2, 3])
     }
 }
