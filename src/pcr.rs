@@ -52,8 +52,8 @@ fn evolve_tree<R: Rng + ?Sized>(tree: &mut SparseTree, round: usize, efficiency:
         .zip(evolved_nodes.iter())
         .map(|(&orig, &evolved)| (orig, evolved))
         .collect();
-    // TODO: Make updated nodes randomly be +1
-    let updated_nodes = current_nodes.mapv(|node| *evolve_map.get(&node).unwrap());
+    let updated_nodes = current_nodes
+        .mapv(|node| *evolve_map.get(&node).unwrap() + ((rng.random::<f32>() < 0.5) as u32) * 1);
     tree.matrix
         .slice_mut(s![(round + 1) as usize, ..])
         .assign(&updated_nodes);
@@ -104,7 +104,5 @@ mod tests {
     }
 
     #[test]
-    fn test_evolve_tree() {
-
-    }
+    fn test_evolve_tree() {}
 }
