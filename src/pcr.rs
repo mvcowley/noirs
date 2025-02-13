@@ -42,6 +42,11 @@ fn evolve_nodes<R: Rng + ?Sized>(
     new_nodes
 }
 
+/// Returns a 1 for any non-zero number, or zero for zero
+fn is_non_zero(n: u32) -> u32 {
+    (n != 0) as u32
+}
+
 /// Updates SparseTree object with the results of the next PCR round
 fn evolve_tree<R: Rng + ?Sized>(tree: &mut SparseTree, round: usize, efficiency: f32, rng: &mut R) {
     let current_nodes = tree.matrix.index_axis(Axis(0), round);
@@ -53,7 +58,7 @@ fn evolve_tree<R: Rng + ?Sized>(tree: &mut SparseTree, round: usize, efficiency:
         .map(|(&orig, &evolved)| (orig, evolved))
         .collect();
     let updated_nodes = current_nodes
-        .mapv(|node| *evolve_map.get(&node).unwrap() + ((rng.random::<f32>() < 0.5) as u32) * 1);
+        .mapv(|node| *evolve_map.get(&node).unwrap() + ((rng.random_bool(0.5) as u32) * 1));
     tree.matrix
         .slice_mut(s![(round + 1) as usize, ..])
         .assign(&updated_nodes);
@@ -104,5 +109,19 @@ mod tests {
     }
 
     #[test]
-    fn test_evolve_tree() {}
+    fn test_is_non_zero(){
+        assert_eq!(is_non_zero(0), 0);
+        assert_eq!(is_non_zero(1), 1);
+        assert_eq!(is_non_zero(2), 1);
+    }
+
+    #[test]
+    fn test_evolve_tree() {
+        let efficiencies = vec![0.5, 0.5];
+        let mut tree = SparseTree::new(&2, &efficiencies);
+        let mut rng = ChaCha8Rng::seed_from_u64(9274); // Draws [0.5790517, 0.3029861, 0.11362618]
+        let round = 0;
+        evolve_tree(&mut tree, round, efficiencies[round], &mut rng);
+        assert_eq!(tree.matrix, array![[1, 1, 1], [1, 5, 6]]);
+    }
 }
