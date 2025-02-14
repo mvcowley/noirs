@@ -1,4 +1,4 @@
-//! Error profiles for pcr
+//! Coalescent PCR simulator
 
 use indexmap::IndexMap;
 use ndarray::prelude::*;
@@ -7,7 +7,7 @@ use rand::Rng;
 /// SparseTree with matrix field that will be populated by node IDs
 pub struct SparseTree {
     /// matrix is an array of u32 as there can be (2^31)-1 leaf nodes
-    matrix: Array2<u32>,
+    pub matrix: Array2<u32>,
 }
 
 /// Functions to create and update the SparseTree matrix
@@ -50,7 +50,6 @@ fn is_non_zero(n: u32) -> u32 {
 /// Updates SparseTree object with the results of the next PCR round
 fn evolve_tree<R: Rng + ?Sized>(tree: &mut SparseTree, round: usize, efficiency: f32, rng: &mut R) {
     let current_nodes = tree.matrix.index_axis(Axis(1), round);
-    println!("{:?}", current_nodes);
     let unique_nodes = get_uniques(&current_nodes.to_vec());
     let evolved_nodes = evolve_nodes(&unique_nodes, efficiency, rng);
     let evolve_map: IndexMap<u32, u32> = unique_nodes
@@ -125,7 +124,6 @@ mod tests {
         let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
         let round = 0;
         evolve_tree(&mut tree, round, efficiencies[round], &mut rng);
-        println!("{:?}", tree.matrix.strides());
         assert_eq!(tree.matrix, array![[1, 3, 1], [1, 2, 1], [1, 3, 1]]);
     }
 
