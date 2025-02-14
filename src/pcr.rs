@@ -37,10 +37,6 @@ fn evolve_nodes<R: Rng + ?Sized>(
 ) -> Array1<u32> {
     let rand_vec: Vec<f32> = (0..unique_nodes.len()).map(|_| rng.random()).collect();
     let rand_arr = Array1::from_vec(rand_vec);
-    println!("{:?}", rand_arr);
-    // let rand_vec: Vec<f32> = (0..unique_nodes.len()).map(|_| rng.random()).collect();
-    // let rand_arr = Array1::from_vec(rand_vec);
-    // println!("{:?}", rand_arr);
     let evo_arr = rand_arr.map(|x| ((*x < efficiency) as u32) + 1);
     let new_nodes = Array::from_vec(unique_nodes.to_vec()) * evo_arr;
     new_nodes
@@ -62,9 +58,6 @@ fn evolve_tree<R: Rng + ?Sized>(tree: &mut SparseTree, round: usize, efficiency:
         .zip(evolved_nodes.iter())
         .map(|(&orig, &evolved)| (orig, evolved))
         .collect();
-    // println!("{:?}", rng.random_bool(0.5));
-    // println!("{:?}", rng.random_bool(0.5));
-    // println!("{:?}", rng.random_bool(0.5));
     let updated_nodes = current_nodes.mapv(|node| {
         let new = *evolve_map.get(&node).unwrap();
         new + (is_non_zero(new - &node) * (rng.random_bool(0.5) as u32))
@@ -144,5 +137,14 @@ mod tests {
         let round = 0;
         evolve_tree(&mut tree, round, efficiencies[round], &mut rng);
         assert_eq!(tree.matrix, array![[1, 1, 1], [1, 1, 1], [1, 1, 1]]);
+    }
+
+    #[test]
+    fn test_simulate_tree() {
+        let efficiencies = vec![0.8, 0.8];
+        let mut rng = ChaCha8Rng::seed_from_u64(987);
+        // Draws [0.24346048, true, false, true, 0.84027797, 0.7916585, false, true, false]
+        let tree = simulate_tree(efficiencies, 3, &mut rng);
+        assert_eq!(tree.matrix, array![[1, 3, 6], [1, 2, 2], [1, 3, 6]]);
     }
 }
