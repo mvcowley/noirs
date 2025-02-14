@@ -6,17 +6,24 @@ use rand::Rng;
 
 /// SparseTree with matrix field that will be populated by node IDs
 pub struct SparseTree {
-    /// matrix is an array of u32 as there can be (2^31)-1 leaf nodes
-    pub matrix: Array2<u32>,
+    ///  An array representing the path through the sparse binary tree of
+    ///  N observations of the sequencer. u32 as there can be (2^31)-1 leaf nodes
+    pub observations: Array2<u32>,
+
+    /// An array representing the mutations accumulated by each observation during evolution.
+    /// As even 1 error per round is unlikely for a given amplicon, u8 is used.
+    pub mutations: Array2<u8>
 }
 
 /// Functions to create and update the SparseTree matrix
 impl SparseTree {
+
     /// Create a matrix of ones so that binary tree path calculation is easy e.g. 1*2 = 2
     fn new(reads: &u32, rounds: &Vec<f32>) -> SparseTree {
         let axis1 = rounds.len() + 1;
         SparseTree {
-            matrix: Array2::<u32>::ones((usize::try_from(*reads).unwrap(), axis1).f()),
+            observations: Array2::<u32>::ones((usize::try_from(*reads).unwrap(), axis1).f()),
+            mutations: Array2::<u8>::ones((usize::try_from(*reads).unwrap(), axis1).f()),
         }
     }
 }
@@ -49,7 +56,7 @@ fn is_non_zero(n: u32) -> u32 {
 
 /// Updates SparseTree object with the results of the next PCR round
 fn evolve_tree<R: Rng + ?Sized>(tree: &mut SparseTree, round: usize, efficiency: f32, rng: &mut R) {
-    let current_nodes = tree.matrix.index_axis(Axis(1), round);
+    let current_nodes = tree.observations.index_axis(Axis(1), round);
     let unique_nodes = get_uniques(&current_nodes.to_vec());
     let evolved_nodes = evolve_nodes(&unique_nodes, efficiency, rng);
     let evolve_map: IndexMap<u32, u32> = unique_nodes
@@ -61,7 +68,7 @@ fn evolve_tree<R: Rng + ?Sized>(tree: &mut SparseTree, round: usize, efficiency:
         let new = *evolve_map.get(&node).unwrap();
         new + (is_non_zero(new - &node) * (rng.random_bool(0.5) as u32))
     });
-    tree.matrix
+    tree.observations
         .slice_mut(s![.., (round + 1) as usize])
         .assign(&updated_nodes);
 }
@@ -91,7 +98,7 @@ mod tests {
         let reads: u32 = 2;
         let efficiencies: Vec<f32> = vec![0.95, 0.95];
         let tree = SparseTree::new(&reads, &efficiencies);
-        assert_eq!(tree.matrix, array![[1, 1, 1], [1, 1, 1]])
+        assert_eq!(tree.observations, array![[1, 1, 1], [1, 1, 1]])
     }
 
     #[test]
@@ -124,7 +131,7 @@ mod tests {
         let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
         let round = 0;
         evolve_tree(&mut tree, round, efficiencies[round], &mut rng);
-        assert_eq!(tree.matrix, array![[1, 3, 1], [1, 2, 1], [1, 3, 1]]);
+        assert_eq!(tree.observations, array![[1, 3, 1], [1, 2, 1], [1, 3, 1]]);
     }
 
     #[test]
@@ -134,7 +141,7 @@ mod tests {
         let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
         let round = 0;
         evolve_tree(&mut tree, round, efficiencies[round], &mut rng);
-        assert_eq!(tree.matrix, array![[1, 1, 1], [1, 1, 1], [1, 1, 1]]);
+        assert_eq!(tree.observations, array![[1, 1, 1], [1, 1, 1], [1, 1, 1]]);
     }
 
     #[test]
@@ -143,6 +150,6 @@ mod tests {
         let mut rng = ChaCha8Rng::seed_from_u64(987);
         // Draws [0.24346048, true, false, true, 0.84027797, 0.7916585, false, true, false]
         let tree = simulate_tree(efficiencies, 3, &mut rng);
-        assert_eq!(tree.matrix, array![[1, 3, 6], [1, 2, 2], [1, 3, 6]]);
+        assert_eq!(tree.observations, array![[1, 3, 6], [1, 2, 2], [1, 3, 6]]);
     }
 }

@@ -16,6 +16,6 @@ fn main() {
     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
     let efficiencies = vec![0.8; 30];
     let tree = pcr::simulate_tree(efficiencies, 100, &mut rng);
-    println!("{:?}", tree.matrix);
-    let _ = write_npy("../out/molecule.npy", &tree.matrix);
+    println!("{:?}", tree.observations);
+    let _ = write_npy("../out/molecule.npy", &tree.observations);
 }
