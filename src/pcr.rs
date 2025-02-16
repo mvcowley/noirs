@@ -64,28 +64,35 @@ fn evolve_nodes(unique_nodes: &Vec<u32>, reaction_successes: &Array1<u32>) -> Ar
     Array::from_vec(unique_nodes.to_vec()) * (reaction_successes + 1)
 }
 
-/// Simulate mutations for both left and right children according to reaction successes
-fn simulate_mutations<R: Rng + ?Sized>(
-    reaction_successes: &Array1<u32>,
-    cycle: &usize,
-    reaction: &PcrParameters,
-    rng: &mut R,
-) -> Array2<u8> {
-    let bin = Binomial::new(reaction.mol_length as u64, reaction.errors[*cycle]).unwrap();
-    let left = reaction_successes.mapv(|node| {
-        let v = bin.sample(rng);
-        u8::try_from(node as u64 * v).unwrap()
-    });
-    let right = reaction_successes.mapv(|node| {
-        let v = bin.sample(rng);
-        u8::try_from(node as u64 * v).unwrap()
-    });
-    stack![Axis(1), left, right]
-}
-
 /// Returns a 1 for any non-zero number, or zero for zero
 fn is_non_zero(n: u32) -> u32 {
     (n != 0) as u32
+}
+
+fn simulate_mutations<R: Rng + ?Sized>(
+    updated_nodes: &Array1<u32>,
+    unique_nodes: &Vec<u32>,
+    cycle: usize,
+    reaction: &PcrParameters,
+    rng: &mut R,
+) -> Array1<u8> {
+    let bin = Binomial::new(reaction.mol_length as u64, reaction.errors[cycle]).unwrap();
+    let updated_uniques = get_uniques(&updated_nodes.to_vec());
+    let set_current: HashSet<&u32> = unique_nodes.iter().collect();
+    let evolved_uniques: Vec<&u32> = updated_uniques
+        .iter()
+        .filter(|x| !set_current.contains(x))
+        .collect();
+    let unique_mutations: Vec<u8> = evolved_uniques
+        .iter()
+        .map(|_| bin.sample(rng).try_into().unwrap())
+        .collect();
+    let mutation_map: IndexMap<u32, u8> = updated_uniques
+        .iter()
+        .zip(unique_mutations.iter())
+        .map(|(&node, &mutation)| (node, mutation))
+        .collect();
+    updated_nodes.mapv(|node| *mutation_map.get(&node).unwrap())
 }
 
 /// Updates SparseTree object with the results of the next PCR cycle
@@ -110,28 +117,11 @@ fn evolve_tree<R: Rng + ?Sized>(
         let evolved = is_non_zero(new - &node);
         new + (evolved * (rng.random_bool(0.5) as u32))
     });
-
     tree.observations
         .slice_mut(s![.., (cycle + 1) as usize])
         .assign(&updated_nodes);
 
-    let bin = Binomial::new(reaction.mol_length as u64, reaction.errors[cycle]).unwrap();
-    let updated_uniques = get_uniques(&updated_nodes.to_vec());
-    let set_current: HashSet<&u32> = unique_nodes.iter().collect();
-    let evolved_uniques: Vec<&u32> = updated_uniques
-        .iter()
-        .filter(|x| !set_current.contains(x))
-        .collect();
-    let unique_mutations: Vec<u8> = evolved_uniques
-        .iter()
-        .map(|_| bin.sample(rng).try_into().unwrap())
-        .collect();
-    let mutation_map: IndexMap<u32, u8> = updated_uniques
-        .iter()
-        .zip(unique_mutations.iter())
-        .map(|(&node, &mutation)| (node, mutation))
-        .collect();
-    let mutations = updated_nodes.mapv(|node| *mutation_map.get(&node).unwrap());
+    let mutations = simulate_mutations(&updated_nodes, &unique_nodes, cycle, reaction, rng);
     tree.mutations
         .slice_mut(s![.., (cycle + 1) as usize])
         .assign(&mutations);
