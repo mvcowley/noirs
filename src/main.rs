@@ -15,15 +15,15 @@ use rand::Rng;
 use ndarray_npy::write_npy;
 
 fn main() {
-    let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws [0.24346048, true, false, true]
+    let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
+    println!("{:?}", rng.random::<f32>());
+    println!("{:?}", rng.random_bool(0.5));
+    println!("{:?}", rng.random_bool(0.5));
+    println!("{:?}", rng.random_bool(0.5));
     let bin = Binomial::new(3, 0.5).unwrap();
     println!("{:?}", bin.sample(&mut rng));
     println!("{:?}", bin.sample(&mut rng));
-    println!("{:?}", bin.sample(&mut rng));
-    // println!("{:?}", rng.random::<f32>());
-    // println!("{:?}", rng.random_bool(0.5));
-    // println!("{:?}", rng.random_bool(0.5));
-    // println!("{:?}", rng.random_bool(0.5));
+    // println!("{:?}", bin.sample(&mut rng));
     // let efficiencies = vec![0.8; 30];
     // let tree = pcr::simulate_tree(efficiencies, 100, &mut rng);
     // println!("{:?}", tree.observations);

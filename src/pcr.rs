@@ -195,8 +195,9 @@ mod tests {
         };
         let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws [2, 1, 3, 2, 1, 0] from binomial with n=3 and p=0.5
         let cycle = 0;
-        let mutated_nodes = simulate_mutations(&updated_nodes, &unique_nodes, cycle, &reaction, &mut rng);
-        assert_eq!(mutated_nodes, array![2, 1, 0])
+        let mutated_nodes =
+            simulate_mutations(&updated_nodes, &unique_nodes, cycle, &reaction, &mut rng);
+        assert_eq!(mutated_nodes, array![2, 1, 0]);
     }
 
     #[test]
@@ -206,24 +207,21 @@ mod tests {
         assert_eq!(is_non_zero(2), 1);
     }
 
-    // #[test]
-    // fn test_evolve_tree_rep_success() {
-    //     let reaction = PcrParameters {
-    //         mol_length: 12,
-    //         efficiencies: vec![0.5; 2],
-    //         errors: vec![0.00001; 2],
-    //     };
-    //     let mut tree = SparseTree::new(&3, &reaction);
-    //     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
-    //     let cycle = 0;
-    //     evolve_tree(
-    //         &mut tree,
-    //         cycle,
-    //         &reaction,
-    //         &mut rng,
-    //     );
-    //     assert_eq!(tree.observations, array![[1, 3, 1], [1, 2, 1], [1, 3, 1]]);
-    // }
+    #[test]
+    fn test_evolve_tree_rep_success() {
+        let reaction = PcrParameters {
+            mol_length: 3,
+            efficiencies: vec![0.5; 2],
+            errors: vec![0.5; 2],
+        };
+        let mut tree = SparseTree::new(&3, &reaction);
+        let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true,
+                                                      // 2, 2]
+        let cycle = 0;
+        evolve_tree(&mut tree, cycle, &reaction, &mut rng);
+        assert_eq!(tree.observations, array![[1, 3, 1], [1, 2, 1], [1, 3, 1]]);
+        assert_eq!(tree.mutations, array![[0, 2, 0], [0, 2, 0], [0, 2, 0]]);
+    }
 
     // #[test]
     // fn test_evolve_tree_rep_fail() {
