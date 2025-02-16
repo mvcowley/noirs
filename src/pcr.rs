@@ -22,7 +22,7 @@ pub struct SparseTree {
     pub observations: Array2<u32>,
 
     /// An array representing the mutations accumulated by each observation during evolution.
-    /// As even 1 error per round is unlikely for a given amplicon, u8 is used.
+    /// As even 1 error per cycle is unlikely for a given amplicon, u8 is used.
     pub mutations: Array2<u8>,
 }
 
@@ -63,24 +63,36 @@ fn evolve_nodes(unique_nodes: &Vec<u32>, reaction_successes: &Array1<u32>) -> Ar
 }
 
 /// Simulate mutations according to reaction successes
-// fn mu
+fn simulate_mutations<R: Rng + ?Sized>(
+    reaction_successes: &Array1<u32>,
+    cycle: &usize,
+    reaction: &PcrParameters,
+    rng: &mut R,
+) -> Array1<u8> {
+    let bin = Binomial::new(reaction.mol_length as u64, reaction.errors[*cycle]).unwrap();
+    reaction_successes.mapv(|node| {
+        let v = bin.sample(rng);
+        println!("{:?}", v);
+        u8::try_from(node as u64 * v).unwrap()
+    })
+}
 
 /// Returns a 1 for any non-zero number, or zero for zero
 fn is_non_zero(n: u32) -> u32 {
     (n != 0) as u32
 }
 
-/// Updates SparseTree object with the results of the next PCR round
+/// Updates SparseTree object with the results of the next PCR cycle
 fn evolve_tree<R: Rng + ?Sized>(
     tree: &mut SparseTree,
-    round: usize,
+    cycle: usize,
     reaction: &PcrParameters,
     rng: &mut R,
 ) {
-    let current_nodes = tree.observations.index_axis(Axis(1), round);
+    let current_nodes = tree.observations.index_axis(Axis(1), cycle);
     let unique_nodes = get_uniques(&current_nodes.to_vec());
     let reaction_successes =
-        check_reaction_success(&unique_nodes, reaction.efficiencies[round], rng);
+        check_reaction_success(&unique_nodes, reaction.efficiencies[cycle], rng);
     let evolved_nodes = evolve_nodes(&unique_nodes, &reaction_successes);
     // let mutated_nodes = evolve_nodes(&evolved_nodes, error, rng);
     let evolve_map: IndexMap<u32, u32> = unique_nodes
@@ -96,26 +108,26 @@ fn evolve_tree<R: Rng + ?Sized>(
     // let mutations = current_nodes.mapv(|node| {
     //     let new = *evolve_map.get(&node).unwrap();
     //     let evolved = is_non_zero(new - &node);
-    //     // TODO: Allow for multiple mutations per round: draw from distribution
+    //     // TODO: Allow for multiple mutations per cycle: draw from distribution
     //     (evolved * (rng.random_bool(error) as u32)) as u8
     // });
     tree.observations
-        .slice_mut(s![.., (round + 1) as usize])
+        .slice_mut(s![.., (cycle + 1) as usize])
         .assign(&updated_nodes);
     // tree.mutations
-    //     .slice_mut(s![.., (round + 1) as usize])
+    //     .slice_mut(s![.., (cycle + 1) as usize])
     //     .assign(&mutations);
 }
 
-/// Create and evolve a SparseTree with `reads` through `rounds`
+/// Create and evolve a SparseTree with `reads` through `cycles`
 pub fn simulate_tree<R: Rng + ?Sized>(
     reaction: PcrParameters,
     reads: u32,
     rng: &mut R,
 ) -> SparseTree {
     let mut tree = SparseTree::new(&reads, &reaction);
-    for round in 0..reaction.efficiencies.len() {
-        evolve_tree(&mut tree, round, &reaction, rng);
+    for cycle in 0..reaction.efficiencies.len() {
+        evolve_tree(&mut tree, cycle, &reaction, rng);
     }
     tree
 }
@@ -165,6 +177,20 @@ mod tests {
     }
 
     #[test]
+    fn test_simulate_mutations() {
+        let reaction_successes = array![1, 0, 0];
+        let cycle = 0;
+        let reaction = PcrParameters {
+            mol_length: 3,
+            efficiencies: vec![0.95; 2],
+            errors: vec![0.5; 2],
+        };
+        let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws [2, 1, 3] from binomial with n=3 and p=0.5
+        let mutated_nodes = simulate_mutations(&reaction_successes, &cycle, &reaction, &mut rng);
+        assert_eq!(mutated_nodes, array![2, 0, 0])
+    }
+
+    #[test]
     fn test_is_non_zero() {
         assert_eq!(is_non_zero(0), 0);
         assert_eq!(is_non_zero(1), 1);
@@ -180,10 +206,10 @@ mod tests {
     //     };
     //     let mut tree = SparseTree::new(&3, &reaction);
     //     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
-    //     let round = 0;
+    //     let cycle = 0;
     //     evolve_tree(
     //         &mut tree,
-    //         round,
+    //         cycle,
     //         &reaction,
     //         &mut rng,
     //     );
@@ -195,8 +221,8 @@ mod tests {
     //     let efficiencies = vec![0.2, 0.5];
     //     let mut tree = SparseTree::new(&3, &efficiencies);
     //     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
-    //     let round = 0;
-    //     evolve_tree(&mut tree, round, efficiencies[round], &mut rng);
+    //     let cycle = 0;
+    //     evolve_tree(&mut tree, cycle, efficiencies[cycle], &mut rng);
     //     assert_eq!(tree.observations, array![[1, 1, 1], [1, 1, 1], [1, 1, 1]]);
     // }
 
