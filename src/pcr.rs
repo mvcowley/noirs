@@ -5,6 +5,7 @@ use ndarray::prelude::*;
 use ndarray::stack;
 use rand::Rng;
 use rand_distr::{Binomial, Distribution};
+use std::collections::HashSet;
 
 /// Holds parameters of polymerase chain reaction
 struct PcrParameters {
@@ -99,12 +100,10 @@ fn evolve_tree<R: Rng + ?Sized>(
     let reaction_successes =
         check_reaction_success(&unique_nodes, reaction.efficiencies[cycle], rng);
     let evolved_nodes = evolve_nodes(&unique_nodes, &reaction_successes);
-    let node_mutations = simulate_mutations(&reaction_successes, &cycle, reaction, rng);
-    let evolve_map: IndexMap<u32, (u32, ArrayView1<u8>)> = unique_nodes
+    let evolve_map: IndexMap<u32, u32> = unique_nodes
         .iter()
         .zip(evolved_nodes.iter())
-        .zip(node_mutations.outer_iter())
-        .map(|((&orig, &evolved), mutations)| (orig, (evolved, mutations)))
+        .map(|(&orig, &evolved)| (orig, evolved))
         .collect();
     let updated_nodes = current_nodes.mapv(|node| {
         let new = *evolve_map.get(&node).unwrap();
@@ -112,21 +111,30 @@ fn evolve_tree<R: Rng + ?Sized>(
         new + (evolved * (rng.random_bool(0.5) as u32))
     });
 
-    // TODO: Need to include the idea that EACH child has a unique chance to develop errors
-    // let mutations = current_nodes.mapv(|node| {
-    //     let new = *evolve_map.get(&node).unwrap();
-    //     let evolved = is_non_zero(new - &node);
-    //     // TODO: Allow for multiple mutations per cycle: draw from distribution
-    //     (evolved * (rng.random_bool(error) as u32)) as u8
-    // });
     tree.observations
         .slice_mut(s![.., (cycle + 1) as usize])
         .assign(&updated_nodes);
 
-    
-    // tree.mutations
-    //     .slice_mut(s![.., (cycle + 1) as usize])
-    //     .assign(&mutations);
+    let bin = Binomial::new(reaction.mol_length as u64, reaction.errors[cycle]).unwrap();
+    let updated_uniques = get_uniques(&updated_nodes.to_vec());
+    let set_current: HashSet<&u32> = unique_nodes.iter().collect();
+    let evolved_uniques: Vec<&u32> = updated_uniques
+        .iter()
+        .filter(|x| !set_current.contains(x))
+        .collect();
+    let unique_mutations: Vec<u8> = evolved_uniques
+        .iter()
+        .map(|_| bin.sample(rng).try_into().unwrap())
+        .collect();
+    let mutation_map: IndexMap<u32, u8> = updated_uniques
+        .iter()
+        .zip(unique_mutations.iter())
+        .map(|(&node, &mutation)| (node, mutation))
+        .collect();
+    let mutations = updated_nodes.mapv(|node| *mutation_map.get(&node).unwrap());
+    tree.mutations
+        .slice_mut(s![.., (cycle + 1) as usize])
+        .assign(&mutations);
 }
 
 /// Create and evolve a SparseTree with `reads` through `cycles`
