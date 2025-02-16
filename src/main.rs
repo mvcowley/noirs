@@ -23,6 +23,13 @@ fn main() {
     let bin = Binomial::new(3, 0.5).unwrap();
     println!("{:?}", bin.sample(&mut rng));
     println!("{:?}", bin.sample(&mut rng));
+    println!("{:?}", rng.random::<f32>());
+    println!("{:?}", rng.random::<f32>());
+    println!("{:?}", rng.random_bool(0.5));
+    println!("{:?}", rng.random_bool(0.5));
+    println!("{:?}", rng.random_bool(0.5));
+    println!("{:?}", bin.sample(&mut rng));
+    println!("{:?}", bin.sample(&mut rng));
     // println!("{:?}", bin.sample(&mut rng));
     // let efficiencies = vec![0.8; 30];
     // let tree = pcr::simulate_tree(efficiencies, 100, &mut rng);

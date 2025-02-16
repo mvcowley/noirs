@@ -8,9 +8,9 @@ use rand_distr::{Binomial, Distribution};
 use std::collections::HashSet;
 
 /// Holds parameters of polymerase chain reaction
-struct PcrParameters {
+pub struct PcrParameters {
     /// Length of the amplified molecule
-    mol_length: u16,
+    sites: u16,
     /// Vector of the reaction success probabilities of each cycle of PCR
     efficiencies: Vec<f32>,
     /// Vector of the error probabilities of each cycle of PCR
@@ -69,6 +69,7 @@ fn is_non_zero(n: u32) -> u32 {
     (n != 0) as u32
 }
 
+/// Simulates the number of mutations which occur per evolved node
 fn simulate_mutations<R: Rng + ?Sized>(
     updated_nodes: &Array1<u32>,
     unique_nodes: &Vec<u32>,
@@ -76,7 +77,7 @@ fn simulate_mutations<R: Rng + ?Sized>(
     reaction: &PcrParameters,
     rng: &mut R,
 ) -> Array1<u8> {
-    let bin = Binomial::new(reaction.mol_length as u64, reaction.errors[cycle]).unwrap();
+    let bin = Binomial::new(reaction.sites as u64, reaction.errors[cycle]).unwrap();
     let updated_uniques = get_uniques(&updated_nodes.to_vec());
     let set_current: HashSet<&u32> = unique_nodes.iter().collect();
     let evolved_uniques: Vec<&u32> = updated_uniques
@@ -151,7 +152,7 @@ mod tests {
     fn test_new_tree() {
         let reads: u32 = 2;
         let reaction = PcrParameters {
-            mol_length: 12,
+            sites: 12,
             efficiencies: vec![0.95; 2],
             errors: vec![0.00001; 2],
         };
@@ -189,7 +190,7 @@ mod tests {
         let updated_nodes = array![4, 5, 3];
         let unique_nodes = vec![2, 3];
         let reaction = PcrParameters {
-            mol_length: 3,
+            sites: 3,
             efficiencies: vec![0.95; 2],
             errors: vec![0.5; 2],
         };
@@ -210,7 +211,7 @@ mod tests {
     #[test]
     fn test_evolve_tree_rep_success() {
         let reaction = PcrParameters {
-            mol_length: 3,
+            sites: 3,
             efficiencies: vec![0.5; 2],
             errors: vec![0.5; 2],
         };
@@ -226,7 +227,7 @@ mod tests {
     #[test]
     fn test_evolve_tree_rep_fail() {
         let reaction = PcrParameters {
-            mol_length: 3,
+            sites: 3,
             efficiencies: vec![0.2; 2],
             errors: vec![0.5; 2],
         };
@@ -239,22 +240,18 @@ mod tests {
         assert_eq!(tree.mutations, array![[0, 0, 0], [0, 0, 0], [0, 0, 0]]);
     }
 
-    // #[test]
-    // fn test_evolve_tree_rep_fail() {
-    //     let efficiencies = vec![0.2, 0.5];
-    //     let mut tree = SparseTree::new(&3, &efficiencies);
-    //     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
-    //     let cycle = 0;
-    //     evolve_tree(&mut tree, cycle, efficiencies[cycle], &mut rng);
-    //     assert_eq!(tree.observations, array![[1, 1, 1], [1, 1, 1], [1, 1, 1]]);
-    // }
-
-    //     #[test]
-    //     fn test_simulate_tree() {
-    //         let efficiencies = vec![0.8, 0.8];
-    //         let mut rng = ChaCha8Rng::seed_from_u64(987);
-    //         // Draws [0.24346048, true, false, true, 0.84027797, 0.7916585, false, true, false]
-    //         let tree = simulate_tree(efficiencies, 3, &mut rng);
-    //         assert_eq!(tree.observations, array![[1, 3, 6], [1, 2, 2], [1, 3, 6]]);
-    //     }
+    #[test]
+    fn test_simulate_tree() {
+        let mut rng = ChaCha8Rng::seed_from_u64(987);
+        let reaction = PcrParameters {
+            sites: 3,
+            efficiencies: vec![0.3; 2],
+            errors: vec![0.5; 2],
+        };
+        // Draws [0.24346048, true, false, true, 2, 2, 0.06048143, 0.4701972, false, true,
+        // false, 1]
+        let tree = simulate_tree(reaction, 3, &mut rng);
+        assert_eq!(tree.observations, array![[1, 3, 3], [1, 2, 5], [1, 3, 3]]);
+        assert_eq!(tree.mutations, array![[0, 2, 0], [0, 2, 1], [0, 2, 0]]);
+    }
 }
