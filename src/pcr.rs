@@ -87,12 +87,12 @@ fn simulate_mutations<R: Rng + ?Sized>(
         .iter()
         .map(|_| bin.sample(rng).try_into().unwrap())
         .collect();
-    let mutation_map: IndexMap<u32, u8> = updated_uniques
+    let mutation_map: IndexMap<&u32, u8> = evolved_uniques
         .iter()
         .zip(unique_mutations.iter())
         .map(|(&node, &mutation)| (node, mutation))
         .collect();
-    updated_nodes.mapv(|node| *mutation_map.get(&node).unwrap())
+    updated_nodes.mapv(|node| *mutation_map.get(&node).unwrap_or_else(|| &0))
 }
 
 /// Updates SparseTree object with the results of the next PCR cycle
@@ -186,7 +186,8 @@ mod tests {
 
     #[test]
     fn test_simulate_mutations() {
-        let reaction_successes = array![1, 0, 1];
+        let updated_nodes = array![4, 5, 3];
+        let unique_nodes = vec![2, 3];
         let reaction = PcrParameters {
             mol_length: 3,
             efficiencies: vec![0.95; 2],
@@ -194,8 +195,8 @@ mod tests {
         };
         let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws [2, 1, 3, 2, 1, 0] from binomial with n=3 and p=0.5
         let cycle = 0;
-        let mutated_nodes = simulate_mutations(&reaction_successes, &cycle, &reaction, &mut rng);
-        assert_eq!(mutated_nodes, array![[2, 2], [0, 0], [3, 0]])
+        let mutated_nodes = simulate_mutations(&updated_nodes, &unique_nodes, cycle, &reaction, &mut rng);
+        assert_eq!(mutated_nodes, array![2, 1, 0])
     }
 
     #[test]
