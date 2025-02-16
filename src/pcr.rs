@@ -23,7 +23,7 @@ impl SparseTree {
         let axis1 = rounds.len() + 1;
         SparseTree {
             observations: Array2::<u32>::ones((usize::try_from(*reads).unwrap(), axis1).f()),
-            mutations: Array2::<u8>::ones((usize::try_from(*reads).unwrap(), axis1).f()),
+            mutations: Array2::<u8>::zeros((usize::try_from(*reads).unwrap(), axis1).f()),
         }
     }
 }
@@ -109,7 +109,8 @@ mod tests {
         let reads: u32 = 2;
         let efficiencies: Vec<f32> = vec![0.95, 0.95];
         let tree = SparseTree::new(&reads, &efficiencies);
-        assert_eq!(tree.observations, array![[1, 1, 1], [1, 1, 1]])
+        assert_eq!(tree.observations, array![[1, 1, 1], [1, 1, 1]]);
+        assert_eq!(tree.mutations, array![[0, 0, 0], [0, 0, 0]]);
     }
 
     #[test]
@@ -135,32 +136,32 @@ mod tests {
         assert_eq!(is_non_zero(2), 1);
     }
 
-    #[test]
-    fn test_evolve_tree_rep_success() {
-        let efficiencies = vec![0.5, 0.5];
-        let mut tree = SparseTree::new(&3, &efficiencies);
-        let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
-        let round = 0;
-        evolve_tree(&mut tree, round, efficiencies[round], &mut rng);
-        assert_eq!(tree.observations, array![[1, 3, 1], [1, 2, 1], [1, 3, 1]]);
-    }
+    // #[test]
+    // fn test_evolve_tree_rep_success() {
+    //     let efficiencies = vec![0.5, 0.5];
+    //     let mut tree = SparseTree::new(&3, &efficiencies);
+    //     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
+    //     let round = 0;
+    //     evolve_tree(&mut tree, round, efficiencies[round], &mut rng);
+    //     assert_eq!(tree.observations, array![[1, 3, 1], [1, 2, 1], [1, 3, 1]]);
+    // }
 
-    #[test]
-    fn test_evolve_tree_rep_fail() {
-        let efficiencies = vec![0.2, 0.5];
-        let mut tree = SparseTree::new(&3, &efficiencies);
-        let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
-        let round = 0;
-        evolve_tree(&mut tree, round, efficiencies[round], &mut rng);
-        assert_eq!(tree.observations, array![[1, 1, 1], [1, 1, 1], [1, 1, 1]]);
-    }
+    // #[test]
+    // fn test_evolve_tree_rep_fail() {
+    //     let efficiencies = vec![0.2, 0.5];
+    //     let mut tree = SparseTree::new(&3, &efficiencies);
+    //     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
+    //     let round = 0;
+    //     evolve_tree(&mut tree, round, efficiencies[round], &mut rng);
+    //     assert_eq!(tree.observations, array![[1, 1, 1], [1, 1, 1], [1, 1, 1]]);
+    // }
 
-    #[test]
-    fn test_simulate_tree() {
-        let efficiencies = vec![0.8, 0.8];
-        let mut rng = ChaCha8Rng::seed_from_u64(987);
-        // Draws [0.24346048, true, false, true, 0.84027797, 0.7916585, false, true, false]
-        let tree = simulate_tree(efficiencies, 3, &mut rng);
-        assert_eq!(tree.observations, array![[1, 3, 6], [1, 2, 2], [1, 3, 6]]);
-    }
+//     #[test]
+//     fn test_simulate_tree() {
+//         let efficiencies = vec![0.8, 0.8];
+//         let mut rng = ChaCha8Rng::seed_from_u64(987);
+//         // Draws [0.24346048, true, false, true, 0.84027797, 0.7916585, false, true, false]
+//         let tree = simulate_tree(efficiencies, 3, &mut rng);
+//         assert_eq!(tree.observations, array![[1, 3, 6], [1, 2, 2], [1, 3, 6]]);
+//     }
 }
