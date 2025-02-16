@@ -2,6 +2,7 @@
 
 use indexmap::IndexMap;
 use ndarray::prelude::*;
+use ndarray::stack;
 use rand::Rng;
 use rand_distr::{Binomial, Distribution};
 
@@ -62,19 +63,23 @@ fn evolve_nodes(unique_nodes: &Vec<u32>, reaction_successes: &Array1<u32>) -> Ar
     Array::from_vec(unique_nodes.to_vec()) * (reaction_successes + 1)
 }
 
-/// Simulate mutations according to reaction successes
+/// Simulate mutations for both left and right children according to reaction successes
 fn simulate_mutations<R: Rng + ?Sized>(
     reaction_successes: &Array1<u32>,
     cycle: &usize,
     reaction: &PcrParameters,
     rng: &mut R,
-) -> Array1<u8> {
+) -> Array2<u8> {
     let bin = Binomial::new(reaction.mol_length as u64, reaction.errors[*cycle]).unwrap();
-    reaction_successes.mapv(|node| {
+    let left = reaction_successes.mapv(|node| {
         let v = bin.sample(rng);
-        println!("{:?}", v);
         u8::try_from(node as u64 * v).unwrap()
-    })
+    });
+    let right = reaction_successes.mapv(|node| {
+        let v = bin.sample(rng);
+        u8::try_from(node as u64 * v).unwrap()
+    });
+    stack![Axis(1), left, right]
 }
 
 /// Returns a 1 for any non-zero number, or zero for zero
@@ -94,7 +99,6 @@ fn evolve_tree<R: Rng + ?Sized>(
     let reaction_successes =
         check_reaction_success(&unique_nodes, reaction.efficiencies[cycle], rng);
     let evolved_nodes = evolve_nodes(&unique_nodes, &reaction_successes);
-    // let mutated_nodes = evolve_nodes(&evolved_nodes, error, rng);
     let evolve_map: IndexMap<u32, u32> = unique_nodes
         .iter()
         .zip(evolved_nodes.iter())
@@ -105,6 +109,8 @@ fn evolve_tree<R: Rng + ?Sized>(
         let evolved = is_non_zero(new - &node);
         new + (evolved * (rng.random_bool(0.5) as u32))
     });
+
+    // TODO: Need to include the idea that EACH child has a unique chance to develop errors
     // let mutations = current_nodes.mapv(|node| {
     //     let new = *evolve_map.get(&node).unwrap();
     //     let evolved = is_non_zero(new - &node);
@@ -114,6 +120,8 @@ fn evolve_tree<R: Rng + ?Sized>(
     tree.observations
         .slice_mut(s![.., (cycle + 1) as usize])
         .assign(&updated_nodes);
+
+    
     // tree.mutations
     //     .slice_mut(s![.., (cycle + 1) as usize])
     //     .assign(&mutations);
@@ -178,16 +186,16 @@ mod tests {
 
     #[test]
     fn test_simulate_mutations() {
-        let reaction_successes = array![1, 0, 0];
-        let cycle = 0;
+        let reaction_successes = array![1, 0, 1];
         let reaction = PcrParameters {
             mol_length: 3,
             efficiencies: vec![0.95; 2],
             errors: vec![0.5; 2],
         };
-        let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws [2, 1, 3] from binomial with n=3 and p=0.5
+        let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws [2, 1, 3, 2, 1, 0] from binomial with n=3 and p=0.5
+        let cycle = 0;
         let mutated_nodes = simulate_mutations(&reaction_successes, &cycle, &reaction, &mut rng);
-        assert_eq!(mutated_nodes, array![2, 0, 0])
+        assert_eq!(mutated_nodes, array![[2, 2], [0, 0], [3, 0]])
     }
 
     #[test]
