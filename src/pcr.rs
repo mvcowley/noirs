@@ -223,6 +223,22 @@ mod tests {
         assert_eq!(tree.mutations, array![[0, 2, 0], [0, 2, 0], [0, 2, 0]]);
     }
 
+    #[test]
+    fn test_evolve_tree_rep_fail() {
+        let reaction = PcrParameters {
+            mol_length: 3,
+            efficiencies: vec![0.2; 2],
+            errors: vec![0.5; 2],
+        };
+        let mut tree = SparseTree::new(&3, &reaction);
+        let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true,
+                                                      // 2, 2]
+        let cycle = 0;
+        evolve_tree(&mut tree, cycle, &reaction, &mut rng);
+        assert_eq!(tree.observations, array![[1, 1, 1], [1, 1, 1], [1, 1, 1]]);
+        assert_eq!(tree.mutations, array![[0, 0, 0], [0, 0, 0], [0, 0, 0]]);
+    }
+
     // #[test]
     // fn test_evolve_tree_rep_fail() {
     //     let efficiencies = vec![0.2, 0.5];
