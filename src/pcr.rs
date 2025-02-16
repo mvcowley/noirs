@@ -99,10 +99,12 @@ fn evolve_tree<R: Rng + ?Sized>(
     let reaction_successes =
         check_reaction_success(&unique_nodes, reaction.efficiencies[cycle], rng);
     let evolved_nodes = evolve_nodes(&unique_nodes, &reaction_successes);
-    let evolve_map: IndexMap<u32, u32> = unique_nodes
+    let node_mutations = simulate_mutations(&reaction_successes, &cycle, reaction, rng);
+    let evolve_map: IndexMap<u32, (u32, ArrayView1<u8>)> = unique_nodes
         .iter()
         .zip(evolved_nodes.iter())
-        .map(|(&orig, &evolved)| (orig, evolved))
+        .zip(node_mutations.outer_iter())
+        .map(|((&orig, &evolved), mutations)| (orig, (evolved, mutations)))
         .collect();
     let updated_nodes = current_nodes.mapv(|node| {
         let new = *evolve_map.get(&node).unwrap();
