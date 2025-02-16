@@ -48,18 +48,15 @@ fn get_uniques(current_nodes: &Vec<u32>) -> Vec<u32> {
     nodes
 }
 
-/// Evolve unique nodes to next round
-fn evolve_nodes<R: Rng + ?Sized>(
+/// Check per unique node if reaction cycle is a success
+fn check_reaction_success<R: Rng + ?Sized>(
     unique_nodes: &Vec<u32>,
     efficiency: f32,
     rng: &mut R,
 ) -> Array1<u32> {
     let rand_vec: Vec<f32> = (0..unique_nodes.len()).map(|_| rng.random()).collect();
     let rand_arr = Array1::from_vec(rand_vec);
-    let evo_arr = rand_arr.map(|x| (*x < efficiency) as u32);
-    let new_nodes = Array::from_vec(unique_nodes.to_vec()) * (evo_arr + 1);
-    // let mut_arr = evo_arr.mapv(|evo| evo * rng.random() )
-    new_nodes
+    rand_arr.map(|x| (*x < efficiency) as u32)
 }
 
 /// Returns a 1 for any non-zero number, or zero for zero
@@ -76,7 +73,9 @@ fn evolve_tree<R: Rng + ?Sized>(
 ) {
     let current_nodes = tree.observations.index_axis(Axis(1), round);
     let unique_nodes = get_uniques(&current_nodes.to_vec());
-    let evolved_nodes = evolve_nodes(&unique_nodes, reaction.efficiencies[round], rng);
+    let reaction_successes =
+        check_reaction_success(&unique_nodes, reaction.efficiencies[round], rng);
+    let evolved_nodes = Array::from_vec(unique_nodes.to_vec()) * (reaction_successes + 1);
     // let mutated_nodes = evolve_nodes(&evolved_nodes, error, rng);
     let evolve_map: IndexMap<u32, u32> = unique_nodes
         .iter()
@@ -125,10 +124,11 @@ mod tests {
     #[test]
     fn test_new_tree() {
         let reads: u32 = 2;
-        let mol_length: u16 = 12;
-        let efficiencies: Vec<f32> = vec![0.95; 2];
-        let errors: Vec<f64> = vec![0.00001; 2];
-        let reaction = PcrParameters{mol_length: mol_length, efficiencies: efficiencies, errors: errors};
+        let reaction = PcrParameters {
+            mol_length: 12,
+            efficiencies: vec![0.95; 2],
+            errors: vec![0.00001; 2],
+        };
         let tree = SparseTree::new(&reads, &reaction);
         assert_eq!(tree.observations, array![[1, 1, 1], [1, 1, 1]]);
         assert_eq!(tree.mutations, array![[0, 0, 0], [0, 0, 0]]);
@@ -142,13 +142,23 @@ mod tests {
     }
 
     #[test]
-    fn test_evolve_nodes() {
+    fn test_check_reaction_success() {
         let unique_nodes: Vec<u32> = vec![1, 2, 3];
         let efficiency: f32 = 0.5;
         let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws [0.4124102, 0.7353993, 0.8147212]
-        let evolved_nodes = evolve_nodes(&unique_nodes, efficiency, &mut rng);
-        assert_eq!(evolved_nodes, array![2, 2, 3]);
+        let reaction_sucesses = check_reaction_success(&unique_nodes, efficiency, &mut rng);
+        assert_eq!(reaction_sucesses, array![1, 0, 0]);
     }
+
+    // #[test]
+    // fn test_evolve_nodes() {
+    //     let unique_nodes: Vec<u32> = vec![1, 2, 3];
+    //     let efficiency: f32 = 0.5;
+    //     let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws [0.4124102, 0.7353993, 0.8147212]
+    //     let evolved_nodes = evolve_nodes(&unique_nodes, efficiency, &mut rng);
+    //     assert_eq!(evolved_nodes, array![2, 2, 3]);
+    // }
+
 
     #[test]
     fn test_is_non_zero() {
@@ -159,16 +169,18 @@ mod tests {
 
     // #[test]
     // fn test_evolve_tree_rep_success() {
-    //     let efficiencies = vec![0.5, 0.5];
-    //     let errors = vec![0.5, 0.5];
-    //     let mut tree = SparseTree::new(&3, &efficiencies);
+    //     let reaction = PcrParameters {
+    //         mol_length: 12,
+    //         efficiencies: vec![0.5; 2],
+    //         errors: vec![0.00001; 2],
+    //     };
+    //     let mut tree = SparseTree::new(&3, &reaction);
     //     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
     //     let round = 0;
     //     evolve_tree(
     //         &mut tree,
     //         round,
-    //         efficiencies[round],
-    //         errors[round],
+    //         &reaction,
     //         &mut rng,
     //     );
     //     assert_eq!(tree.observations, array![[1, 3, 1], [1, 2, 1], [1, 3, 1]]);
