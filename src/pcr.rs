@@ -38,8 +38,6 @@ impl SparseTree {
     }
 }
 
-///
-
 /// Drop duplicates from node vector
 fn get_uniques(current_nodes: &Vec<u32>) -> Vec<u32> {
     let mut nodes = current_nodes.clone();
@@ -59,6 +57,14 @@ fn check_reaction_success<R: Rng + ?Sized>(
     rand_arr.map(|x| (*x < efficiency) as u32)
 }
 
+/// Evolve nodes according to reaction successes
+fn evolve_nodes(unique_nodes: &Vec<u32>, reaction_successes: &Array1<u32>) -> Array1<u32> {
+    Array::from_vec(unique_nodes.to_vec()) * (reaction_successes + 1)
+}
+
+/// Simulate mutations according to reaction successes
+// fn mu
+
 /// Returns a 1 for any non-zero number, or zero for zero
 fn is_non_zero(n: u32) -> u32 {
     (n != 0) as u32
@@ -75,7 +81,7 @@ fn evolve_tree<R: Rng + ?Sized>(
     let unique_nodes = get_uniques(&current_nodes.to_vec());
     let reaction_successes =
         check_reaction_success(&unique_nodes, reaction.efficiencies[round], rng);
-    let evolved_nodes = Array::from_vec(unique_nodes.to_vec()) * (reaction_successes + 1);
+    let evolved_nodes = evolve_nodes(&unique_nodes, &reaction_successes);
     // let mutated_nodes = evolve_nodes(&evolved_nodes, error, rng);
     let evolve_map: IndexMap<u32, u32> = unique_nodes
         .iter()
@@ -150,15 +156,13 @@ mod tests {
         assert_eq!(reaction_sucesses, array![1, 0, 0]);
     }
 
-    // #[test]
-    // fn test_evolve_nodes() {
-    //     let unique_nodes: Vec<u32> = vec![1, 2, 3];
-    //     let efficiency: f32 = 0.5;
-    //     let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws [0.4124102, 0.7353993, 0.8147212]
-    //     let evolved_nodes = evolve_nodes(&unique_nodes, efficiency, &mut rng);
-    //     assert_eq!(evolved_nodes, array![2, 2, 3]);
-    // }
-
+    #[test]
+    fn test_evolve_nodes() {
+        let unique_nodes: Vec<u32> = vec![1, 2, 3];
+        let reaction_successes = array![1, 0, 0];
+        let evolved_nodes = evolve_nodes(&unique_nodes, &reaction_successes);
+        assert_eq!(evolved_nodes, array![2, 2, 3]);
+    }
 
     #[test]
     fn test_is_non_zero() {
