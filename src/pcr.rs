@@ -55,7 +55,7 @@ fn is_non_zero(n: u32) -> u32 {
 }
 
 /// Updates SparseTree object with the results of the next PCR round
-fn evolve_tree<R: Rng + ?Sized>(tree: &mut SparseTree, round: usize, efficiency: f32, rng: &mut R) {
+fn evolve_tree<R: Rng + ?Sized>(tree: &mut SparseTree, round: usize, efficiency: f32, error: f64, rng: &mut R) {
     let current_nodes = tree.observations.index_axis(Axis(1), round);
     let unique_nodes = get_uniques(&current_nodes.to_vec());
     let evolved_nodes = evolve_nodes(&unique_nodes, efficiency, rng);
@@ -66,22 +66,33 @@ fn evolve_tree<R: Rng + ?Sized>(tree: &mut SparseTree, round: usize, efficiency:
         .collect();
     let updated_nodes = current_nodes.mapv(|node| {
         let new = *evolve_map.get(&node).unwrap();
-        new + (is_non_zero(new - &node) * (rng.random_bool(0.5) as u32))
+        let evolved = is_non_zero(new - &node);
+        new + (evolved * (rng.random_bool(0.5) as u32))
+    });
+    let mutations = current_nodes.mapv(|node| {
+        let new = *evolve_map.get(&node).unwrap();
+        let evolved = is_non_zero(new - &node);
+        // TODO: Allow for multiple mutations per round: draw from distribution
+        (evolved * (rng.random_bool(error) as u32)) as u8
     });
     tree.observations
         .slice_mut(s![.., (round + 1) as usize])
         .assign(&updated_nodes);
+    tree.mutations
+        .slice_mut(s![.., (round + 1) as usize])
+        .assign(&mutations);
 }
 
 /// Create and evolve a SparseTree with `reads` through `rounds`
 pub fn simulate_tree<R: Rng + ?Sized>(
     efficiencies: Vec<f32>,
+    errors: Vec<f64>,
     reads: u32,
     rng: &mut R,
 ) -> SparseTree {
     let mut tree = SparseTree::new(&reads, &efficiencies);
     for round in 0..efficiencies.len() {
-        evolve_tree(&mut tree, round, efficiencies[round], rng);
+        evolve_tree(&mut tree, round, efficiencies[round], errors[round], rng);
     }
     tree
 }
