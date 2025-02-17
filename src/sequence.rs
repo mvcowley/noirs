@@ -9,11 +9,11 @@ use rand_distr::{Binomial, Distribution};
 /// Parameters of sequencing technology chosen
 pub struct Sequencer {
     // Error rate
-    error: f64,
+    pub error: f64,
 }
 
 pub fn sequence<R: Rng + ?Sized>(
-    library: &Array1<u32>,
+    library: &ArrayView1<u32>,
     reaction: &PcrParameters,
     sequencer: Sequencer,
     rng: &mut R,

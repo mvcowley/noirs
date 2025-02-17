@@ -129,13 +129,13 @@ fn evolve_tree<R: Rng + ?Sized>(
 
 /// Create and evolve a SparseTree with `reads` through `cycles`
 pub fn simulate_tree<R: Rng + ?Sized>(
-    reaction: PcrParameters,
+    reaction: &PcrParameters,
     reads: u32,
     rng: &mut R,
 ) -> SparseTree {
     let mut tree = SparseTree::new(&reads, &reaction);
     for cycle in 0..reaction.efficiencies.len() {
-        evolve_tree(&mut tree, cycle, &reaction, rng);
+        evolve_tree(&mut tree, cycle, reaction, rng);
     }
     tree
 }
@@ -249,7 +249,7 @@ mod tests {
         };
         // Draws [0.24346048, true, false, true, 2, 2, 0.06048143, 0.4701972, false, true,
         // false, 1]
-        let tree = simulate_tree(reaction, 3, &mut rng);
+        let tree = simulate_tree(&reaction, 3, &mut rng);
         assert_eq!(tree.observations, array![[1, 3, 3], [1, 2, 5], [1, 3, 3]]);
         assert_eq!(tree.mutations, array![[0, 2, 0], [0, 2, 1], [0, 2, 0]]);
     }

@@ -15,13 +15,19 @@ use rand_chacha::ChaCha8Rng;
 fn main() {
     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
     let reaction = pcr::PcrParameters {
-        sites: 300,
+        sites: (12 + 20 + 20 + 15),
         efficiencies: vec![0.8; 30],
         errors: vec![0.0001; 30],
     };
-    let tree = pcr::simulate_tree(reaction, 100, &mut rng);
+    let tree = pcr::simulate_tree(&reaction, 100, &mut rng);
     println!("{:?}", tree.observations);
-    let _ = write_npy("../out/feat-mut_observations.npy", &tree.observations);
+    let _ = write_npy("../out/feat-seq_observations.npy", &tree.observations);
     println!("{:?}", tree.mutations);
-    let _ = write_npy("../out/feat-mut_mutations.npy", &tree.mutations);
+    let _ = write_npy("../out/feat-seq_mutations.npy", &tree.mutations);
+    let sequencer = sequence::Sequencer{
+        error: 0.005
+    };
+    let sequencer_errors = sequence::sequence(&tree.observations.index_axis(ndarray::Axis(1), tree.observations.shape()[1] - 1), &reaction, sequencer, &mut rng);
+    println!("{:?}", sequencer_errors);
+    let _ = write_npy("../out/feat-seq_seq-errors.npy", &sequencer_errors);
 }
