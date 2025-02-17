@@ -2,7 +2,6 @@
 
 use indexmap::IndexMap;
 use ndarray::prelude::*;
-use ndarray::stack;
 use rand::Rng;
 use rand_distr::{Binomial, Distribution};
 use std::collections::HashSet;
@@ -10,11 +9,11 @@ use std::collections::HashSet;
 /// Holds parameters of polymerase chain reaction
 pub struct PcrParameters {
     /// Length of the amplified molecule
-    sites: u16,
+    pub sites: u16,
     /// Vector of the reaction success probabilities of each cycle of PCR
-    efficiencies: Vec<f32>,
+    pub efficiencies: Vec<f32>,
     /// Vector of the error probabilities of each cycle of PCR
-    errors: Vec<f64>,
+    pub errors: Vec<f64>,
 }
 
 /// SparseTree with matrix field that will be populated by node IDs
