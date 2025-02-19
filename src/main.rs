@@ -16,7 +16,7 @@ fn main() {
     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
 
     // Simulate reaction
-    let reaction = pcr::PcrParameters {
+    let reaction = pcr::Reaction {
         sites: (12 + 20 + 20 + 15),
         efficiencies: vec![0.8; 30],
         errors: vec![0.0001; 30],
