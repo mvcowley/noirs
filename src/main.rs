@@ -17,7 +17,7 @@ fn main() {
 
     // Simulate reaction
     let reaction = pcr::Reaction {
-        sites: (12 + 20 + 20 + 15),
+        sites: 12,
         efficiencies: vec![0.8; 30],
         errors: vec![0.0001; 30],
     };
