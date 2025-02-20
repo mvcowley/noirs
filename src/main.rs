@@ -14,7 +14,10 @@ use rand_chacha::ChaCha8Rng;
 
 fn main() {
     let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
+    // Setup sampler
 
+
+    // Loop while observed < N
     // Simulate reaction
     let reaction = pcr::Reaction {
         sites: 12,
