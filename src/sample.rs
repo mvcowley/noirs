@@ -1,6 +1,11 @@
 //! Draw samples
 
-use rand::Rng;
+use crate::pcr::{simulate_tree, Reaction, SparseTree};
+use crate::sequence::{sequence, Sequencer};
+use ndarray::prelude::*;
+use ndarray::concatenate;
+use ndarray_npy::write_npy;
+use rand::{seq::IndexedRandom, Rng};
 use rand_distr::Zipf;
 
 /// Parametrises sampling
@@ -24,8 +29,44 @@ impl Sampler {
 }
 
 /// Draw from sampler and convert to integer
-pub fn draw<R: Rng + ?Sized>(sampler: Sampler, rng: &mut R) -> u32 {
+fn draw<R: Rng + ?Sized>(sampler: &Sampler, rng: &mut R) -> u32 {
     rng.sample(sampler.distribution).round() as u32
+}
+
+/// Join the node id, pcr mutation, and sequencing mutation arrays
+fn join(arr1: Array2<u32>, arr2: Array2<u32>, arr3: Array1<u32>) -> Array2<u32> {
+    concatenate![Axis(1), arr1, arr2, arr3.insert_axis(Axis(1))]
+}
+
+/// Run library sampler and write out each UMI's observations directly to file
+pub fn sample<R: Rng + ?Sized>(
+    sampler: &Sampler,
+    reaction: &Reaction,
+    sequencer: &Sequencer,
+    rng: &mut R,
+    out: &str,
+) {
+    // Loop while observed < N
+    let mut observation_count = 0;
+    while observation_count < sampler.observed {
+        let umi_obs = draw(sampler, rng);
+        observation_count += umi_obs;
+
+        // Simulate reaction and sequencing
+        let tree = simulate_tree(reaction, umi_obs, rng);
+        let sequencer_errors = sequence(
+            &tree
+                .observations
+                .index_axis(ndarray::Axis(1), tree.observations.shape()[1] - 1),
+            &reaction,
+            sequencer,
+            rng,
+        );
+        
+        // Join arrays and write out
+        let umi_array = join(tree.observations, tree.mutations, sequencer_errors);
+        let _ = write_npy("../../out/noirs_out/", &umi_array);
+    }
 }
 
 #[cfg(test)]
@@ -53,7 +94,16 @@ mod tests {
         let max_obs = 1e3;
         let exponent = 1.5;
         let sampler = Sampler::new(observed, max_obs, exponent);
-        let observations = draw(sampler, &mut rng);
-        assert_eq!(observations, 11);
+        let draw = draw(&sampler, &mut rng);
+        assert_eq!(draw, 11);
+    }
+
+    #[test]
+    fn test_join() {
+        let arr1 = array![[1, 2], [3, 4]];
+        let arr2 = array![[1, 2], [3, 4]];
+        let arr3 = array![5, 6];
+        let joined = join(arr1, arr2, arr3);
+        assert_eq!(joined, array![[1, 2, 1, 2, 5], [3, 4, 3, 4, 6]])
     }
 }

@@ -23,8 +23,9 @@ pub struct SparseTree {
     pub observations: Array2<u32>,
 
     /// An array representing the mutations accumulated by each observation during evolution.
-    /// As even 1 error per cycle is unlikely for a given amplicon, u8 is used.
-    pub mutations: Array2<u8>,
+    /// As even 1 error per cycle is unlikely for a given amplicon, u8 would be ok, but u32 helps
+    /// for later merge with other data for a given UMI
+    pub mutations: Array2<u32>,
 }
 
 /// Functions to create and update the SparseTree matrix
@@ -34,7 +35,7 @@ impl SparseTree {
         let cycles = reaction.efficiencies.len() + 1;
         SparseTree {
             observations: Array2::<u32>::ones((usize::try_from(*reads).unwrap(), cycles).f()),
-            mutations: Array2::<u8>::zeros((usize::try_from(*reads).unwrap(), cycles).f()),
+            mutations: Array2::<u32>::zeros((usize::try_from(*reads).unwrap(), cycles).f()),
         }
     }
 }
@@ -75,7 +76,7 @@ fn simulate_mutations<R: Rng + ?Sized>(
     cycle: usize,
     reaction: &Reaction,
     rng: &mut R,
-) -> Array1<u8> {
+) -> Array1<u32> {
     let bin = Binomial::new(reaction.sites as u64, reaction.errors[cycle]).unwrap();
     let updated_uniques = get_uniques(&updated_nodes.to_vec());
     let set_current: HashSet<&u32> = unique_nodes.iter().collect();
@@ -83,11 +84,11 @@ fn simulate_mutations<R: Rng + ?Sized>(
         .iter()
         .filter(|x| !set_current.contains(x))
         .collect();
-    let unique_mutations: Vec<u8> = evolved_uniques
+    let unique_mutations: Vec<u32> = evolved_uniques
         .iter()
         .map(|_| bin.sample(rng).try_into().unwrap())
         .collect();
-    let mutation_map: IndexMap<&u32, u8> = evolved_uniques
+    let mutation_map: IndexMap<&u32, u32> = evolved_uniques
         .iter()
         .zip(unique_mutations.iter())
         .map(|(&node, &mutation)| (node, mutation))

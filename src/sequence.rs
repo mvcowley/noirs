@@ -15,7 +15,7 @@ pub struct Sequencer {
 pub fn sequence<R: Rng + ?Sized>(
     library: &ArrayView1<u32>,
     reaction: &Reaction,
-    sequencer: Sequencer,
+    sequencer: &Sequencer,
     rng: &mut R,
 ) -> Array1<u32> {
     let bin = Binomial::new(reaction.sites as u64, sequencer.error).unwrap();
@@ -38,7 +38,7 @@ mod tests {
         };
         let sequencer = Sequencer { error: 0.5 };
         let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws [2, 1, 3, 2, 1, 0] from binomial with n=3 and p=0.5
-        let sequence_errors = sequence(&library.slice(s![..]), &reaction, sequencer, &mut rng);
+        let sequence_errors = sequence(&library.slice(s![..]), &reaction, &sequencer, &mut rng);
         assert_eq!(sequence_errors, array![2, 1, 3]);
     }
 }
