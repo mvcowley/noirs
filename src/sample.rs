@@ -9,19 +9,23 @@ pub struct Sampler {
     pub observed: u32,
 
     /// Distribution observations per species are sampled from
-    pub distribution: Zipf<f32>
+    pub distribution: Zipf<f32>,
 }
 
 impl Sampler {
     fn new(observed: u32, max_obs: f32, exponent: f32) -> Sampler {
         Sampler {
             observed,
-            distribution: Zipf::new(max_obs, exponent).unwrap()
+            distribution: Zipf::new(max_obs, exponent).unwrap(),
         }
     }
 }
 
-// fn draw<R: Rng + ?Sized>(sampler: Sampler, rng: &mut R) -> Vec<u32>
+fn draw<R: Rng + ?Sized>(sampler: Sampler, rng: &mut R) -> Vec<u32> {
+    (0..sampler.observed)
+        .map(|_| rng.sample(sampler.distribution).round() as u32)
+        .collect()
+}
 
 #[cfg(test)]
 mod tests {
@@ -32,7 +36,7 @@ mod tests {
     #[test]
     fn test_sampler() {
         let mut rng = ChaCha8Rng::seed_from_u64(927); // Draws 11.0 from Zipf defined below
-        let observed = 1000000;
+        let observed = 1_000_000;
         let max_obs = 1e3;
         let exponent = 1.5;
         let sampler = Sampler::new(observed, max_obs, exponent);
@@ -40,5 +44,15 @@ mod tests {
         let draw = rng.sample(sampler.distribution);
         assert_eq!(draw, 11.0);
     }
-}
 
+    #[test]
+    fn test_draw() {
+        let mut rng = ChaCha8Rng::seed_from_u64(927);
+        let observed = 4;
+        let max_obs = 1e3;
+        let exponent = 1.5;
+        let sampler = Sampler::new(observed, max_obs, exponent);
+        let observations = draw(sampler, &mut rng);
+        assert_eq!(observations, vec![11, 2, 2, 8]);
+    }
+}
