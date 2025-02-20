@@ -12,7 +12,9 @@ pub struct Sampler {
     pub distribution: Zipf<f32>,
 }
 
+/// Function to create Sampler
 impl Sampler {
+    /// Create sampler holding read depth target and parametrised Zipfian distribution
     pub fn new(observed: u32, max_obs: f32, exponent: f32) -> Sampler {
         Sampler {
             observed,
@@ -21,6 +23,7 @@ impl Sampler {
     }
 }
 
+/// Draw from sampler and convert to integer
 pub fn draw<R: Rng + ?Sized>(sampler: Sampler, rng: &mut R) -> u32 {
     rng.sample(sampler.distribution).round() as u32
 }
