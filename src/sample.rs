@@ -65,7 +65,8 @@ pub fn sample<R: Rng + ?Sized>(
         
         // Join arrays and write out
         let umi_array = join(tree.observations, tree.mutations, sequencer_errors);
-        let _ = write_npy("../../out/noirs_out/", &umi_array);
+        let filename = format!("{out}{observation_count}.npy");
+        let _ = write_npy(filename, &umi_array);
     }
 }
 
