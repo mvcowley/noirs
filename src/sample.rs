@@ -47,9 +47,13 @@ pub fn sample<R: Rng + ?Sized>(
     out: &str,
 ) {
     // Loop while observed < N
+    let mut umi_number = 0;
     let mut observation_count = 0;
     while observation_count < sampler.observed {
+        println!("Simulating UMI number {}...", &umi_number);
+        println!("Observations: {}/{}...", &observation_count, &sampler.observed);
         let umi_obs = draw(sampler, rng);
+        umi_number += 1;
         observation_count += umi_obs;
 
         // Simulate reaction and sequencing
@@ -65,7 +69,8 @@ pub fn sample<R: Rng + ?Sized>(
         
         // Join arrays and write out
         let umi_array = join(tree.observations, tree.mutations, sequencer_errors);
-        let filename = format!("{out}{observation_count}.npy");
+        let filename = format!("{out}{umi_number}.npy");
+        println!("Writing UMI number {} to {}...", &umi_number, &filename);
         let _ = write_npy(filename, &umi_array);
     }
 }
