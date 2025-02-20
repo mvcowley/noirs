@@ -13,7 +13,7 @@ pub struct Sampler {
 }
 
 impl Sampler {
-    fn new(observed: u32, max_obs: f32, exponent: f32) -> Sampler {
+    pub fn new(observed: u32, max_obs: f32, exponent: f32) -> Sampler {
         Sampler {
             observed,
             distribution: Zipf::new(max_obs, exponent).unwrap(),
@@ -21,10 +21,8 @@ impl Sampler {
     }
 }
 
-fn draw<R: Rng + ?Sized>(sampler: Sampler, rng: &mut R) -> Vec<u32> {
-    (0..sampler.observed)
-        .map(|_| rng.sample(sampler.distribution).round() as u32)
-        .collect()
+pub fn draw<R: Rng + ?Sized>(sampler: Sampler, rng: &mut R) -> u32 {
+    rng.sample(sampler.distribution).round() as u32
 }
 
 #[cfg(test)]
@@ -53,6 +51,6 @@ mod tests {
         let exponent = 1.5;
         let sampler = Sampler::new(observed, max_obs, exponent);
         let observations = draw(sampler, &mut rng);
-        assert_eq!(observations, vec![11, 2, 2, 8]);
+        assert_eq!(observations, 11);
     }
 }
