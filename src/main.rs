@@ -12,7 +12,9 @@ use rand_chacha::rand_core::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
 fn main() {
-    let mut rng = ChaCha8Rng::seed_from_u64(987); // Draws [0.24346048, true, false, true]
+    // let mut rng = ChaCha8Rng::seed_from_u64(987); // run 1
+    // let mut rng = ChaCha8Rng::seed_from_u64(392); // run 2
+    let mut rng = ChaCha8Rng::seed_from_u64(654); // run 3
 
     // Setup sampler
     let total_observations = 1_000_000;
@@ -31,5 +33,5 @@ fn main() {
     let sequencer = sequence::Sequencer { error: 0.005 };
 
     // Sample library
-    sample::sample(&sampler, &reaction, &sequencer, &mut rng, "../out/noirs_out/");
+    sample::sample(&sampler, &reaction, &sequencer, &mut rng, "../out/noirs_out_3/");
 }
