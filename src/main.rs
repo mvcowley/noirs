@@ -26,12 +26,12 @@ fn main() {
     let reaction = pcr::Reaction {
         sites: 12,
         efficiencies: vec![0.8; 30],
-        errors: vec![0.0001; 30],
+        errors: vec![0.001; 30],
     };
 
     // Setup sequencer
     let sequencer = sequence::Sequencer { error: 0.005 };
 
     // Sample library
-    sample::sample(&sampler, &reaction, &sequencer, &mut rng, "../out/noirs_out_3/");
+    sample::sample(&sampler, &reaction, &sequencer, &mut rng, "../out/noirs_out_3_high_error/");
 }
