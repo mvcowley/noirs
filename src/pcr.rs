@@ -7,7 +7,7 @@ use rand_distr::{Binomial, Distribution};
 use std::collections::HashSet;
 
 /// Holds parameters of polymerase chain reaction
-pub struct PcrParameters {
+pub struct Reaction {
     /// Length of the amplified molecule
     pub sites: u16,
     /// Vector of the reaction success probabilities of each cycle of PCR
@@ -23,18 +23,19 @@ pub struct SparseTree {
     pub observations: Array2<u32>,
 
     /// An array representing the mutations accumulated by each observation during evolution.
-    /// As even 1 error per cycle is unlikely for a given amplicon, u8 is used.
-    pub mutations: Array2<u8>,
+    /// As even 1 error per cycle is unlikely for a given amplicon, u8 would be ok, but u32 helps
+    /// for later merge with other data for a given UMI
+    pub mutations: Array2<u32>,
 }
 
 /// Functions to create and update the SparseTree matrix
 impl SparseTree {
     /// Create a matrix of ones so that binary tree path calculation is easy e.g. 1*2 = 2
-    fn new(reads: &u32, reaction: &PcrParameters) -> SparseTree {
+    fn new(reads: &u32, reaction: &Reaction) -> SparseTree {
         let cycles = reaction.efficiencies.len() + 1;
         SparseTree {
             observations: Array2::<u32>::ones((usize::try_from(*reads).unwrap(), cycles).f()),
-            mutations: Array2::<u8>::zeros((usize::try_from(*reads).unwrap(), cycles).f()),
+            mutations: Array2::<u32>::zeros((usize::try_from(*reads).unwrap(), cycles).f()),
         }
     }
 }
@@ -73,9 +74,9 @@ fn simulate_mutations<R: Rng + ?Sized>(
     updated_nodes: &Array1<u32>,
     unique_nodes: &Vec<u32>,
     cycle: usize,
-    reaction: &PcrParameters,
+    reaction: &Reaction,
     rng: &mut R,
-) -> Array1<u8> {
+) -> Array1<u32> {
     let bin = Binomial::new(reaction.sites as u64, reaction.errors[cycle]).unwrap();
     let updated_uniques = get_uniques(&updated_nodes.to_vec());
     let set_current: HashSet<&u32> = unique_nodes.iter().collect();
@@ -83,11 +84,11 @@ fn simulate_mutations<R: Rng + ?Sized>(
         .iter()
         .filter(|x| !set_current.contains(x))
         .collect();
-    let unique_mutations: Vec<u8> = evolved_uniques
+    let unique_mutations: Vec<u32> = evolved_uniques
         .iter()
         .map(|_| bin.sample(rng).try_into().unwrap())
         .collect();
-    let mutation_map: IndexMap<&u32, u8> = evolved_uniques
+    let mutation_map: IndexMap<&u32, u32> = evolved_uniques
         .iter()
         .zip(unique_mutations.iter())
         .map(|(&node, &mutation)| (node, mutation))
@@ -99,7 +100,7 @@ fn simulate_mutations<R: Rng + ?Sized>(
 fn evolve_tree<R: Rng + ?Sized>(
     tree: &mut SparseTree,
     cycle: usize,
-    reaction: &PcrParameters,
+    reaction: &Reaction,
     rng: &mut R,
 ) {
     let current_nodes = tree.observations.index_axis(Axis(1), cycle);
@@ -129,7 +130,7 @@ fn evolve_tree<R: Rng + ?Sized>(
 
 /// Create and evolve a SparseTree with `reads` through `cycles`
 pub fn simulate_tree<R: Rng + ?Sized>(
-    reaction: &PcrParameters,
+    reaction: &Reaction,
     reads: u32,
     rng: &mut R,
 ) -> SparseTree {
@@ -150,7 +151,7 @@ mod tests {
     #[test]
     fn test_new_tree() {
         let reads: u32 = 2;
-        let reaction = PcrParameters {
+        let reaction = Reaction {
             sites: 12,
             efficiencies: vec![0.95; 2],
             errors: vec![0.00001; 2],
@@ -188,7 +189,7 @@ mod tests {
     fn test_simulate_mutations() {
         let updated_nodes = array![4, 5, 3];
         let unique_nodes = vec![2, 3];
-        let reaction = PcrParameters {
+        let reaction = Reaction {
             sites: 3,
             efficiencies: vec![0.95; 2],
             errors: vec![0.5; 2],
@@ -209,7 +210,7 @@ mod tests {
 
     #[test]
     fn test_evolve_tree_rep_success() {
-        let reaction = PcrParameters {
+        let reaction = Reaction {
             sites: 3,
             efficiencies: vec![0.5; 2],
             errors: vec![0.5; 2],
@@ -225,7 +226,7 @@ mod tests {
 
     #[test]
     fn test_evolve_tree_rep_fail() {
-        let reaction = PcrParameters {
+        let reaction = Reaction {
             sites: 3,
             efficiencies: vec![0.2; 2],
             errors: vec![0.5; 2],
@@ -242,7 +243,7 @@ mod tests {
     #[test]
     fn test_simulate_tree() {
         let mut rng = ChaCha8Rng::seed_from_u64(987);
-        let reaction = PcrParameters {
+        let reaction = Reaction {
             sites: 3,
             efficiencies: vec![0.3; 2],
             errors: vec![0.5; 2],
