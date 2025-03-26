@@ -22,15 +22,15 @@ fn main() {
     let exponent = 2.0;
     let sampler = sample::Sampler::new(total_observations, max_observations, exponent);
 
-    let mut pcr1 = vec![0.1; 10];
-    let mut pcr2 = vec![0.0; 10];
-    pcr1.append(&mut pcr2);
+    let pcr = vec![0.0001; 30];
+    // let mut pcr2 = vec![0.0; 10];
+    // pcr1.append(&mut pcr2);
 
     // Setup PCR reaction
     let reaction = pcr::Reaction {
         sites: 12,
-        efficiencies: vec![0.95; 20],
-        errors: pcr1,
+        efficiencies: vec![0.95; 30],
+        errors: pcr,
     };
 
     // Setup sequencer
@@ -42,6 +42,6 @@ fn main() {
         &reaction,
         &sequencer,
         &mut rng,
-        "../out/noirs_out_error_step/",
+        "../out/noirs_out_1_big/",
     );
 }
