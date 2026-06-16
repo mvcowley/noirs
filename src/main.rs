@@ -12,9 +12,7 @@ use rand_chacha::rand_core::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
 fn main() {
-    let mut rng = ChaCha8Rng::seed_from_u64(987); // run 1
-    // let mut rng = ChaCha8Rng::seed_from_u64(392); // run 2
-    // let mut rng = ChaCha8Rng::seed_from_u64(654); // run 3
+    let mut rng = ChaCha8Rng::seed_from_u64(987);
 
     // Setup sampler
     let total_observations = 1_000_000;
@@ -22,9 +20,9 @@ fn main() {
     let exponent = 2.0;
     let sampler = sample::Sampler::new(total_observations, max_observations, exponent);
 
-    let pcr = vec![0.0001; 30];
-    // let mut pcr2 = vec![0.0; 10];
-    // pcr1.append(&mut pcr2);
+    let pcr = vec![0.0001; 20];
+    let mut pcr2 = vec![0.0; 10];
+    pcr1.append(&mut pcr2);
 
     // Setup PCR reaction
     let reaction = pcr::Reaction {
@@ -42,6 +40,6 @@ fn main() {
         &reaction,
         &sequencer,
         &mut rng,
-        "../out/noirs_out_1_big/",
+        "../out/noirs_out_demo/",
     );
 }
